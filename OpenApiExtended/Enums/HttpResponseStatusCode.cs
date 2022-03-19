@@ -1,4 +1,4 @@
-﻿namespace OpenApiExtended.Enums
+﻿namespace OpenApiExtended
 {
     public enum HttpResponseStatusCode
     {

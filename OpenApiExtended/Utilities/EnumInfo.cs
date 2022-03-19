@@ -1,6 +1,6 @@
-﻿namespace OpenApiExtended.Utilities;
+﻿namespace OpenApiExtended;
 
-public class EnumMemberInfo
+internal class EnumMemberInfo
 {
     public string Name { get; set; }
     public string Value { get; set; }
