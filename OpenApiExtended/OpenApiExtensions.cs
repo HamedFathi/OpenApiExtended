@@ -1003,6 +1003,10 @@ namespace OpenApiExtended
         // ---------------------------------------------------------------------------------------------------------------------------------------------------------------
         public static IList<string> GetPathsKeys(this OpenApiDocument openApiDocument)
         {
+            if (openApiDocument == null)
+            {
+                throw new ArgumentNullException(nameof(openApiDocument));
+            }
             var list = new List<string>();
             var paths = GetPaths(openApiDocument);
             foreach (var path in paths)
@@ -1014,6 +1018,10 @@ namespace OpenApiExtended
         }
         public static IList<string> GetOperationsKeys(this OpenApiDocument openApiDocument)
         {
+            if (openApiDocument == null)
+            {
+                throw new ArgumentNullException(nameof(openApiDocument));
+            }
             var list = new List<string>();
             var paths = GetPaths(openApiDocument);
             foreach (var path in paths)
@@ -1031,6 +1039,10 @@ namespace OpenApiExtended
         }
         public static IList<string> GetResponsesKeys(this OpenApiDocument openApiDocument)
         {
+            if (openApiDocument == null)
+            {
+                throw new ArgumentNullException(nameof(openApiDocument));
+            }
             var list = new List<string>();
             var paths = GetPaths(openApiDocument);
             foreach (var path in paths)
@@ -1052,43 +1064,167 @@ namespace OpenApiExtended
         // ---------------------------------------------------------------------------------------------------------------------------------------------------------------
         public static IList<OpenApiSchema> GetComponentsSchema(this OpenApiDocument openApiDocument)
         {
+            if (openApiDocument == null)
+            {
+                throw new ArgumentNullException(nameof(openApiDocument));
+            }
             return openApiDocument.Components.Schemas.Select(x => x.Value).ToList();
         }
         public static IList<OpenApiSchema> GetComponentsSchema(this OpenApiDocument openApiDocument, out int count)
         {
+            if (openApiDocument == null)
+            {
+                throw new ArgumentNullException(nameof(openApiDocument));
+            }
             var schemas = openApiDocument.Components.Schemas.Select(x => x.Value).ToList();
             count = schemas.Count;
             return schemas;
         }
         public static IList<OpenApiSchema> GetComponentsSchema(this OpenApiDocument openApiDocument, Func<string, bool> schemaId)
         {
+            if (openApiDocument == null)
+            {
+                throw new ArgumentNullException(nameof(openApiDocument));
+            }
             return openApiDocument.Components.Schemas.Where(x => schemaId(x.Key)).Select(x => x.Value).ToList();
         }
         public static IList<OpenApiSchema> GetComponentsSchema(this OpenApiDocument openApiDocument, Func<string, bool> schemaId, out int count)
         {
+            if (openApiDocument == null)
+            {
+                throw new ArgumentNullException(nameof(openApiDocument));
+            }
             var schemas = openApiDocument.Components.Schemas.Where(x => schemaId(x.Key)).Select(x => x.Value).ToList();
             count = schemas.Count;
             return schemas;
         }
         public static IList<OpenApiSchema> GetComponentsSchema(this OpenApiDocument openApiDocument, Func<OpenApiSchema, bool> schema)
         {
+            if (openApiDocument == null)
+            {
+                throw new ArgumentNullException(nameof(openApiDocument));
+            }
             var schemas = openApiDocument.Components.Schemas.Select(x => x.Value);
             var result = schemas.Where(x => schema(x)).ToList();
             return result;
         }
         public static IList<OpenApiSchema> GetComponentsSchema(this OpenApiDocument openApiDocument, Func<OpenApiSchema, bool> schema, out int count)
         {
+            if (openApiDocument == null)
+            {
+                throw new ArgumentNullException(nameof(openApiDocument));
+            }
             var schemas = openApiDocument.Components.Schemas.Select(x => x.Value);
             var result = schemas.Where(x => schema(x)).ToList();
             count = result.Count;
             return result;
         }
         // ---------------------------------------------------------------------------------------------------------------------------------------------------------------
-        public static string ConvertToJsonExample(this OpenApiSchema openApiSchema)
+        public static bool IsArray(this OpenApiSchema openApiSchema)
         {
-
-
-            return null;
+            if (openApiSchema == null)
+            {
+                throw new ArgumentNullException(nameof(openApiSchema));
+            }
+            return openApiSchema.Type == "array";
         }
+        public static bool IsObject(this OpenApiSchema openApiSchema)
+        {
+            if (openApiSchema == null)
+            {
+                throw new ArgumentNullException(nameof(openApiSchema));
+            }
+            return openApiSchema.Type == "object";
+        }
+        public static bool IsPrimitive(this OpenApiSchema openApiSchema)
+        {
+            if (openApiSchema == null)
+            {
+                throw new ArgumentNullException(nameof(openApiSchema));
+            }
+            return !openApiSchema.IsArray() && !openApiSchema.IsObject();
+        }
+        public static string GetType(this OpenApiSchema openApiSchema)
+        {
+            if (openApiSchema == null)
+            {
+                throw new ArgumentNullException(nameof(openApiSchema));
+            }
+            return openApiSchema.Type;
+        }
+        public static string GetFormat(this OpenApiSchema openApiSchema)
+        {
+            if (openApiSchema == null)
+            {
+                throw new ArgumentNullException(nameof(openApiSchema));
+            }
+            return openApiSchema.Format;
+        }
+        public static IEnumerable<string> GetRequired(this OpenApiSchema openApiSchema)
+        {
+            if (openApiSchema == null)
+            {
+                throw new ArgumentNullException(nameof(openApiSchema));
+            }
+            return openApiSchema.Required.Select(x => x);
+        }
+        // ---------------------------------------------------------------------------------------------------------------------------------------------------------------
+        private static IDictionary<string, OpenApiSchema> GetSchemaMembers(this OpenApiSchema openApiSchema, string memberName = null, IDictionary<string, OpenApiSchema> list = null)
+        {
+            if (openApiSchema == null)
+            {
+                throw new ArgumentNullException(nameof(openApiSchema));
+            }
+            if (memberName == null)
+            {
+                memberName = string.Empty;
+            }
+            if (list == null)
+            {
+                list = new Dictionary<string, OpenApiSchema>();
+            }
+            // Array Type
+            if (openApiSchema.IsArray())
+            {
+                // Root
+                if (string.IsNullOrEmpty(memberName))
+                    list.Add(memberName, openApiSchema);
+
+                var items = openApiSchema.Items;
+                items.GetSchemaMembers(memberName, list);
+            }
+            // Object Type
+            else if (openApiSchema.IsObject())
+            {
+                // Root
+                if (string.IsNullOrEmpty(memberName))
+                    list.Add(memberName, openApiSchema);
+
+                var props = openApiSchema.Properties;
+                foreach (var prop in props)
+                {
+                    var propName = prop.Key;
+                    list.Add(propName, prop.Value);
+                    prop.Value.GetSchemaMembers(propName, list);
+                }
+            }
+            // Simple Type
+            else
+            {
+                // No need to add!
+            }
+            return list;
+        }
+        public static IDictionary<string, OpenApiSchema> GetMembers(this OpenApiSchema openApiSchema)
+        {
+            if (openApiSchema == null)
+            {
+                throw new ArgumentNullException(nameof(openApiSchema));
+            }
+            return GetSchemaMembers(openApiSchema);
+        }
+        // ---------------------------------------------------------------------------------------------------------------------------------------------------------------
+
     }
 }
+

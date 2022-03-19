@@ -1,10 +1,10 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 	<PropertyGroup>
 		<TargetFrameworks>netstandard2.0</TargetFrameworks>
 		<Authors>Hamed Fathi</Authors>
 		<Company />
 		<PublishRepositoryUrl>true</PublishRepositoryUrl>
-		<Version>0.0.3</Version>
+		<Version>0.0.4</Version>
 		<LangVersion>latest</LangVersion>
 		<PackageProjectUrl>https://github.com/HamedFathi/OpenApiExtended</PackageProjectUrl>
 		<RepositoryUrl>https://github.com/HamedFathi/OpenApiExtended</RepositoryUrl>
