@@ -31,7 +31,7 @@ namespace OpenApiExtended
             }
             return openApiDocument.Info.Version;
         }
-        public static Version GetSemanticVersion(this OpenApiDocument openApiDocument, out bool isSemanticVersion)
+        public static Version GetSemanticVersion(this OpenApiDocument openApiDocument)
         {
             if (openApiDocument == null)
             {
@@ -43,12 +43,10 @@ namespace OpenApiExtended
             try
             {
                 var version = Version.Parse(versionInfo);
-                isSemanticVersion = true;
                 return version;
             }
             catch
             {
-                isSemanticVersion = false;
                 return null;
             }
         }
@@ -1086,7 +1084,7 @@ namespace OpenApiExtended
             return result;
         }
         // ---------------------------------------------------------------------------------------------------------------------------------------------------------------
-        public static string ConvertTo(this OpenApiSchema openApiSchema)
+        public static string ConvertToJsonExample(this OpenApiSchema openApiSchema)
         {
 
 

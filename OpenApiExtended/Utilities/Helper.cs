@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
+using System.Text.Json;
 
 namespace OpenApiExtended
 {
@@ -22,6 +23,13 @@ namespace OpenApiExtended
                 Value = values.GetValue(i)?.ToString(),
                 Description = descriptions[i]
             });
+        }
+        internal static string ToFormattedJson(this string jsonText)
+        {
+            jsonText = jsonText.Trim().Trim(',');
+            var parsedJson = JsonDocument.Parse(jsonText, new JsonDocumentOptions() { AllowTrailingCommas = true });
+            var result = JsonSerializer.Serialize(parsedJson, new JsonSerializerOptions { WriteIndented = true });
+            return result;
         }
     }
 }
