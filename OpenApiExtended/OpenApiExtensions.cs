@@ -194,6 +194,14 @@ namespace OpenApiExtended
             return result;
         }
         // ---------------------------------------------------------------------------------------------------------------------------------------------------------------
+        public static bool HasParameter(this OpenApiOperation openApiOperation)
+        {
+            if (openApiOperation == null)
+            {
+                throw new ArgumentNullException(nameof(openApiOperation));
+            }
+            return openApiOperation.Parameters != null && openApiOperation.Parameters.Any();
+        }
         public static IList<OpenApiParameter> GetParameters(this OpenApiOperation openApiOperation)
         {
             if (openApiOperation == null)
@@ -254,8 +262,7 @@ namespace OpenApiExtended
             {
                 throw new ArgumentNullException(nameof(openApiOperations));
             }
-
-            var parameters = openApiOperations.SelectMany(x => x.Parameters).ToList();
+            var parameters = openApiOperations.Where(x => x.HasParameter()).SelectMany(x => x.Parameters).ToList();
             return parameters;
         }
         public static IList<OpenApiParameter> GetParameters(this IEnumerable<OpenApiOperation> openApiOperations, out int count)
@@ -264,7 +271,7 @@ namespace OpenApiExtended
             {
                 throw new ArgumentNullException(nameof(openApiOperations));
             }
-            var parameters = openApiOperations.SelectMany(x => x.Parameters).ToList();
+            var parameters = openApiOperations.Where(x => x.HasParameter()).SelectMany(x => x.Parameters).ToList();
             count = parameters.Count;
             return parameters;
         }
@@ -275,7 +282,7 @@ namespace OpenApiExtended
                 throw new ArgumentNullException(nameof(openApiOperations));
             }
 
-            var parameters = openApiOperations.SelectMany(x => x.Parameters).ToList();
+            var parameters = openApiOperations.Where(x => x.HasParameter()).SelectMany(x => x.Parameters).ToList();
 
             if (predicate != null)
             {
@@ -290,7 +297,7 @@ namespace OpenApiExtended
             {
                 throw new ArgumentNullException(nameof(openApiOperations));
             }
-            var parameters = openApiOperations.SelectMany(x => x.Parameters).ToList();
+            var parameters = openApiOperations.Where(x => x.HasParameter()).SelectMany(x => x.Parameters).ToList();
             if (predicate != null)
             {
                 parameters = parameters.Where(predicate).ToList();
@@ -306,6 +313,25 @@ namespace OpenApiExtended
                 throw new ArgumentNullException(nameof(openApiOperation));
             }
             return openApiOperation.RequestBody != null;
+        }
+        public static OpenApiRequestBody GetRequestBody(this OpenApiOperation openApiOperation)
+        {
+            if (openApiOperation == null)
+            {
+                throw new ArgumentNullException(nameof(openApiOperation));
+            }
+
+            var requestBody = openApiOperation.RequestBody;
+            return requestBody;
+        }
+        public static IList<OpenApiRequestBody> GetRequestBody(this IEnumerable<OpenApiOperation> openApiOperations)
+        {
+            if (openApiOperations == null)
+            {
+                throw new ArgumentNullException(nameof(openApiOperations));
+            }
+            var requestBody = openApiOperations.Where(x => HasRequestBody(x)).Select(x => x.RequestBody).ToList();
+            return requestBody;
         }
         // ---------------------------------------------------------------------------------------------------------------------------------------------------------------
         public static IList<OpenApiMediaType> GetRequestBodyContent(this OpenApiOperation openApiOperation)
@@ -374,7 +400,7 @@ namespace OpenApiExtended
             count = apiMediaTypes.Count;
             return apiMediaTypes;
         }
-        public static IList<OpenApiMediaType> GetRequestBodyContent(this OpenApiOperation openApiOperation, Func<CommonMimeType, bool> predicate)
+        public static IList<OpenApiMediaType> GetRequestBodyContent(this OpenApiOperation openApiOperation, Func<OpenApiMimeType, bool> predicate)
         {
             if (openApiOperation == null)
             {
@@ -388,13 +414,13 @@ namespace OpenApiExtended
             }
 
             var apiMediaTypes = requestBody.Content
-                .Where(x => predicate((CommonMimeType)ConvertToCommonMimeType<CommonMimeType>(x.Key)))
+                .Where(x => predicate((OpenApiMimeType)ConvertToOpenApiMimeType<OpenApiMimeType>(x.Key)))
                 .Select(x => x.Value)
                 .ToList()
                 ;
             return apiMediaTypes;
         }
-        public static IList<OpenApiMediaType> GetRequestBodyContent(this OpenApiOperation openApiOperation, Func<CommonMimeType, bool> predicate, out int count)
+        public static IList<OpenApiMediaType> GetRequestBodyContent(this OpenApiOperation openApiOperation, Func<OpenApiMimeType, bool> predicate, out int count)
         {
             if (openApiOperation == null)
             {
@@ -409,13 +435,13 @@ namespace OpenApiExtended
             }
 
             var apiMediaTypes = requestBody.Content
-                .Where(x => predicate((CommonMimeType)ConvertToCommonMimeType<CommonMimeType>(x.Key)))
+                .Where(x => predicate((OpenApiMimeType)ConvertToOpenApiMimeType<OpenApiMimeType>(x.Key)))
                 .Select(x => x.Value).ToList();
             count = apiMediaTypes.Count;
             return apiMediaTypes;
         }
         // ---------------------------------------------------------------------------------------------------------------------------------------------------------------
-        private static object ConvertToCommonMimeType<T>(string mimeType) where T : Enum
+        private static object ConvertToOpenApiMimeType<T>(string mimeType) where T : Enum
         {
             var result = Helper.GetEnumInfo<T>().FirstOrDefault(x => x.Description == mimeType);
             if (result == null)
@@ -466,7 +492,7 @@ namespace OpenApiExtended
             count = schemas.Count;
             return schemas;
         }
-        public static IList<OpenApiSchema> GetRequestBodySchema(this OpenApiOperation openApiOperation, Func<CommonMimeType, bool> predicate)
+        public static IList<OpenApiSchema> GetRequestBodySchema(this OpenApiOperation openApiOperation, Func<OpenApiMimeType, bool> predicate)
         {
             if (openApiOperation == null)
             {
@@ -476,7 +502,7 @@ namespace OpenApiExtended
             var requestBody = openApiOperation.RequestBody;
 
             var apiMediaTypes = requestBody?.Content
-                    .Where(x => predicate((CommonMimeType)ConvertToCommonMimeType<CommonMimeType>(x.Key)))
+                    .Where(x => predicate((OpenApiMimeType)ConvertToOpenApiMimeType<OpenApiMimeType>(x.Key)))
                     .Select(x => x.Value)
                     .ToList()
                 ;
@@ -484,7 +510,7 @@ namespace OpenApiExtended
             var schemas = apiMediaTypes?.Select(x => x.Schema).ToList();
             return schemas;
         }
-        public static IList<OpenApiSchema> GetRequestBodySchema(this OpenApiOperation openApiOperation, Func<CommonMimeType, bool> predicate, out int count)
+        public static IList<OpenApiSchema> GetRequestBodySchema(this OpenApiOperation openApiOperation, Func<OpenApiMimeType, bool> predicate, out int count)
         {
             if (openApiOperation == null)
             {
@@ -497,16 +523,297 @@ namespace OpenApiExtended
                 return null;
             }
             var apiMediaTypes = requestBody.Content
-                .Where(x => predicate((CommonMimeType)ConvertToCommonMimeType<CommonMimeType>(x.Key)))
+                .Where(x => predicate((OpenApiMimeType)ConvertToOpenApiMimeType<OpenApiMimeType>(x.Key)))
                 .Select(x => x.Value).ToList();
             count = apiMediaTypes.Count;
             var schemas = apiMediaTypes.Select(x => x.Schema).ToList();
             return schemas;
         }
         // ---------------------------------------------------------------------------------------------------------------------------------------------------------------
+        public static bool HasResponse(this OpenApiOperation openApiOperation)
+        {
+            if (openApiOperation == null)
+            {
+                throw new ArgumentNullException(nameof(openApiOperation));
+            }
+            return openApiOperation.Responses != null && openApiOperation.Responses.Any();
+        }
+        public static OpenApiResponses GetResponses(this OpenApiOperation openApiOperation)
+        {
+            if (openApiOperation == null)
+            {
+                throw new ArgumentNullException(nameof(openApiOperation));
+            }
+
+            var responses = openApiOperation.Responses;
+            return responses;
+        }
+        public static OpenApiResponses GetResponses(this OpenApiOperation openApiOperation, out int count)
+        {
+            if (openApiOperation == null)
+            {
+                throw new ArgumentNullException(nameof(openApiOperation));
+            }
+
+            var responses = openApiOperation.Responses;
+            count = responses.Count;
+            return responses;
+        }
+        public static IList<OpenApiResponse> GetResponses(this IEnumerable<OpenApiOperation> openApiOperations)
+        {
+            if (openApiOperations == null)
+            {
+                throw new ArgumentNullException(nameof(openApiOperations));
+            }
+
+            var responses = openApiOperations.Where(x => x.HasResponse()).SelectMany(x => x.Responses).Select(x => x.Value).ToList();
+            return responses;
+        }
+        public static IList<OpenApiResponse> GetResponses(this IEnumerable<OpenApiOperation> openApiOperations, out int count)
+        {
+            if (openApiOperations == null)
+            {
+                throw new ArgumentNullException(nameof(openApiOperations));
+            }
+
+            var responses = openApiOperations.Where(x => x.HasResponse()).SelectMany(x => x.Responses).Select(x => x.Value).ToList();
+            count = responses.Count;
+            return responses;
+        }
+        // ---------------------------------------------------------------------------------------------------------------------------------------------------------------
+        public static IList<OpenApiResponse> GetResponses(this OpenApiOperation openApiOperation, Func<string, bool> predicate)
+        {
+            if (openApiOperation == null)
+            {
+                throw new ArgumentNullException(nameof(openApiOperation));
+            }
+            var responses = openApiOperation.Responses.Where(x => predicate(x.Key)).Select(x => x.Value).ToList();
+            return responses;
+        }
+        public static IList<OpenApiResponse> GetResponses(this OpenApiOperation openApiOperation, Func<string, bool> predicate, out int count)
+        {
+            if (openApiOperation == null)
+            {
+                throw new ArgumentNullException(nameof(openApiOperation));
+            }
+            var responses = openApiOperation.Responses.Where(x => predicate(x.Key)).Select(x => x.Value).ToList();
+            count = responses.Count;
+            return responses;
+        }
+        public static IList<OpenApiResponse> GetResponses(this OpenApiOperation openApiOperation, Func<HttpResponseStatusCode, bool> predicate)
+        {
+            if (openApiOperation == null)
+            {
+                throw new ArgumentNullException(nameof(openApiOperation));
+            }
+            var responses = openApiOperation.Responses
+                .Where(x => predicate((HttpResponseStatusCode)Enum.Parse(typeof(HttpResponseStatusCode), x.Key)))
+                .Select(x => x.Value).ToList();
+            return responses;
+        }
+        public static IList<OpenApiResponse> GetResponses(this OpenApiOperation openApiOperation, Func<HttpResponseStatusCode, bool> predicate, out int count)
+        {
+            if (openApiOperation == null)
+            {
+                throw new ArgumentNullException(nameof(openApiOperation));
+            }
+            var responses = openApiOperation.Responses
+                .Where(x => predicate((HttpResponseStatusCode)Enum.Parse(typeof(HttpResponseStatusCode), x.Key)))
+                .Select(x => x.Value).ToList();
+            count = responses.Count;
+            return responses;
+        }
+        // ---------------------------------------------------------------------------------------------------------------------------------------------------------------
+        public static IList<OpenApiMediaType> GetResponsesContent(this OpenApiOperation openApiOperation)
+        {
+            if (openApiOperation == null)
+            {
+                throw new ArgumentNullException(nameof(openApiOperation));
+            }
+            var responses = GetResponses(openApiOperation);
+            var content = responses.Select(x => x.Value).SelectMany(x => x.Content).Select(x => x.Value).ToList();
+            return content;
+        }
+        public static IList<OpenApiMediaType> GetResponsesContent(this OpenApiOperation openApiOperation, out int count)
+        {
+            if (openApiOperation == null)
+            {
+                throw new ArgumentNullException(nameof(openApiOperation));
+            }
+            var responses = GetResponses(openApiOperation);
+            var content = responses.Select(x => x.Value).SelectMany(x => x.Content).Select(x => x.Value).ToList();
+            count = content.Count;
+            return content;
+        }
+        public static IList<OpenApiMediaType> GetResponsesContent(this OpenApiOperation openApiOperation, Func<string, bool> httpResponseStatusCode, Func<string, bool> mimeType)
+        {
+            if (openApiOperation == null)
+            {
+                throw new ArgumentNullException(nameof(openApiOperation));
+            }
+
+            var responses = GetResponses(openApiOperation, httpResponseStatusCode);
+            var content = responses.SelectMany(x => x.Content).Where(x => mimeType(x.Key)).Select(x => x.Value).ToList();
+            return content;
+        }
+        public static IList<OpenApiMediaType> GetResponsesContent(this OpenApiOperation openApiOperation, Func<string, bool> httpResponseStatusCode, Func<string, bool> mimeType, out int count)
+        {
+            if (openApiOperation == null)
+            {
+                throw new ArgumentNullException(nameof(openApiOperation));
+            }
+            var responses = GetResponses(openApiOperation, httpResponseStatusCode);
+            var content = responses.SelectMany(x => x.Content).Where(x => mimeType(x.Key)).Select(x => x.Value).ToList();
+            count = content.Count;
+            return content;
+        }
+        public static IList<OpenApiMediaType> GetResponsesContent(this OpenApiOperation openApiOperation, Func<HttpResponseStatusCode, bool> httpResponseStatusCode, Func<OpenApiMimeType, bool> mimeType)
+        {
+            if (openApiOperation == null)
+            {
+                throw new ArgumentNullException(nameof(openApiOperation));
+            }
+            var responses = GetResponses(openApiOperation, httpResponseStatusCode);
+            var content = responses
+                .SelectMany(x => x.Content)
+                .Where(x => mimeType((OpenApiMimeType)ConvertToOpenApiMimeType<OpenApiMimeType>(x.Key))).Select(x => x.Value).ToList();
+            return content;
+        }
+        public static IList<OpenApiMediaType> GetResponsesContent(this OpenApiOperation openApiOperation, Func<HttpResponseStatusCode, bool> httpResponseStatusCode, Func<OpenApiMimeType, bool> mimeType, out int count)
+        {
+            if (openApiOperation == null)
+            {
+                throw new ArgumentNullException(nameof(openApiOperation));
+            }
+            var responses = GetResponses(openApiOperation, httpResponseStatusCode);
+            var content = responses.SelectMany(x => x.Content)
+                .Where(x => mimeType((OpenApiMimeType)ConvertToOpenApiMimeType<OpenApiMimeType>(x.Key))).Select(x => x.Value).ToList();
+            count = content.Count;
+            return content;
+        }
+        // ---------------------------------------------------------------------------------------------------------------------------------------------------------------
+        public static IList<OpenApiSchema> GetResponsesSchema(this OpenApiOperation openApiOperation)
+        {
+            if (openApiOperation == null)
+            {
+                throw new ArgumentNullException(nameof(openApiOperation));
+            }
+            var responses = GetResponses(openApiOperation);
+            var schemas = responses.Select(x => x.Value).SelectMany(x => x.Content).Select(x => x.Value.Schema).ToList();
+            return schemas;
+        }
+        public static IList<OpenApiSchema> GetResponsesSchema(this OpenApiOperation openApiOperation, out int count)
+        {
+            if (openApiOperation == null)
+            {
+                throw new ArgumentNullException(nameof(openApiOperation));
+            }
+            var responses = GetResponses(openApiOperation);
+            var schemas = responses.Select(x => x.Value).SelectMany(x => x.Content).Select(x => x.Value.Schema).ToList();
+            count = schemas.Count;
+            return schemas;
+        }
+        public static IList<OpenApiSchema> GetResponsesSchema(this OpenApiOperation openApiOperation, Func<string, bool> httpResponseStatusCode, Func<string, bool> mimeType)
+        {
+            if (openApiOperation == null)
+            {
+                throw new ArgumentNullException(nameof(openApiOperation));
+            }
+
+            var responses = GetResponses(openApiOperation, httpResponseStatusCode);
+            var schemas = responses.SelectMany(x => x.Content).Where(x => mimeType(x.Key)).Select(x => x.Value.Schema).ToList();
+            return schemas;
+        }
+        public static IList<OpenApiSchema> GetResponsesSchema(this OpenApiOperation openApiOperation, Func<string, bool> httpResponseStatusCode, Func<string, bool> mimeType, out int count)
+        {
+            if (openApiOperation == null)
+            {
+                throw new ArgumentNullException(nameof(openApiOperation));
+            }
+            var responses = GetResponses(openApiOperation, httpResponseStatusCode);
+            var schemas = responses.SelectMany(x => x.Content).Where(x => mimeType(x.Key)).Select(x => x.Value.Schema).ToList();
+            count = schemas.Count;
+            return schemas;
+        }
+        public static IList<OpenApiSchema> GetResponsesSchema(this OpenApiOperation openApiOperation, Func<HttpResponseStatusCode, bool> httpResponseStatusCode, Func<OpenApiMimeType, bool> mimeType)
+        {
+            if (openApiOperation == null)
+            {
+                throw new ArgumentNullException(nameof(openApiOperation));
+            }
+            var responses = GetResponses(openApiOperation, httpResponseStatusCode);
+            var schemas = responses
+                .SelectMany(x => x.Content)
+                .Where(x => mimeType((OpenApiMimeType)ConvertToOpenApiMimeType<OpenApiMimeType>(x.Key))).Select(x => x.Value.Schema).ToList();
+            return schemas;
+        }
+        public static IList<OpenApiSchema> GetResponsesSchema(this OpenApiOperation openApiOperation, Func<HttpResponseStatusCode, bool> httpResponseStatusCode, Func<OpenApiMimeType, bool> mimeType, out int count)
+        {
+            if (openApiOperation == null)
+            {
+                throw new ArgumentNullException(nameof(openApiOperation));
+            }
+            var responses = GetResponses(openApiOperation, httpResponseStatusCode);
+            var schemas = responses.SelectMany(x => x.Content)
+                .Where(x => mimeType((OpenApiMimeType)ConvertToOpenApiMimeType<OpenApiMimeType>(x.Key))).Select(x => x.Value.Schema).ToList();
+            count = schemas.Count;
+            return schemas;
+        }
+        // ---------------------------------------------------------------------------------------------------------------------------------------------------------------
+        public static IList<string> GetPathsKeys(this OpenApiDocument openApiDocument)
+        {
+            var list = new List<string>();
+            var paths = GetPaths(openApiDocument);
+            foreach (var path in paths)
+            {
+                var pathKey = path.Key;
+                list.Add(pathKey);
+            }
+            return list;
+        }
+        public static IList<string> GetOperationsKeys(this OpenApiDocument openApiDocument)
+        {
+            var list = new List<string>();
+            var paths = GetPaths(openApiDocument);
+            foreach (var path in paths)
+            {
+                var pathKey = path.Key;
+                var operations = path.Value;
+                foreach (var operation in operations.Operations)
+                {
+                    var operationKey = operation.Key.ToString().ToLower();
+                    list.Add($"{pathKey}@{operationKey}");
+                }
+            }
+
+            return list;
+        }
+        public static IList<string> GetResponsesKeys(this OpenApiDocument openApiDocument)
+        {
+            var list = new List<string>();
+            var paths = GetPaths(openApiDocument);
+            foreach (var path in paths)
+            {
+                var pathKey = path.Key;
+                var operations = path.Value;
+                foreach (var operation in operations.Operations)
+                {
+                    var operationKey = operation.Key.ToString().ToLower();
+                    foreach (var response in operation.Value.Responses)
+                    {
+                        var responseKey = response.Key;
+                        list.Add($"{pathKey}@{operationKey}@{responseKey}");
+                    }
+                }
+            }
+            return list;
+        }
+        // ---------------------------------------------------------------------------------------------------------------------------------------------------------------
+        public static string ConvertTo(this OpenApiSchema openApiSchema)
+        {
 
 
-
-
+            return null;
+        }
     }
 }

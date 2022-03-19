@@ -2,7 +2,7 @@
 
 namespace OpenApiExtended.Enums
 {
-    public enum CommonMimeType
+    public enum OpenApiMimeType
     {
         [Description("application/json")]
         ApplicationJson,
@@ -15,6 +15,8 @@ namespace OpenApiExtended.Enums
         [Description("text/xml")]
         TextXml,
         [Description("application/*+xml")]
-        ApplicationAsteriskXml
+        ApplicationAsteriskXml,
+        [Description("text/plain")]
+        TextPlain,
     }
 }
