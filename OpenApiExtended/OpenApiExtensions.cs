@@ -1530,12 +1530,13 @@ namespace OpenApiExtended
             }
             return list;
         }
-        public static IList<string> GetOperationsKeys(this OpenApiDocument openApiDocument)
+        public static IList<string> GetOperationsKeys(this OpenApiDocument openApiDocument, string separator = ">")
         {
             if (openApiDocument == null)
             {
                 throw new ArgumentNullException(nameof(openApiDocument));
             }
+            separator = string.IsNullOrEmpty(separator) ? ">" : separator;
             var list = new List<string>();
             var paths = GetPaths(openApiDocument);
             foreach (var path in paths)
@@ -1545,17 +1546,20 @@ namespace OpenApiExtended
                 foreach (var operation in operations.Operations)
                 {
                     var operationKey = operation.Key.ToString().ToLower();
-                    list.Add($"{pathKey}>{operationKey}");
+                    list.Add($"{pathKey}{separator}{operationKey}");
                 }
             }
-
             return list;
         }
-        public static IList<string> GetResponsesKeys(this OpenApiDocument openApiDocument)
+        public static IList<string> GetResponsesKeys(this OpenApiDocument openApiDocument, string separator = ">")
         {
             if (openApiDocument == null)
             {
                 throw new ArgumentNullException(nameof(openApiDocument));
+            }
+            if (string.IsNullOrEmpty(separator))
+            {
+                throw new ArgumentNullException(nameof(separator));
             }
             var list = new List<string>();
             var paths = GetPaths(openApiDocument);
@@ -1569,11 +1573,92 @@ namespace OpenApiExtended
                     foreach (var response in operation.Value.Responses)
                     {
                         var responseKey = response.Key;
-                        list.Add($"{pathKey}>{operationKey}>{responseKey}");
+                        list.Add($"{pathKey}{separator}{operationKey}{separator}{responseKey}");
                     }
                 }
             }
             return list;
+        }
+        public static object FindByKey(this OpenApiDocument openApiDocument, string key, string separator = ">")
+        {
+            if (openApiDocument == null)
+            {
+                throw new ArgumentNullException(nameof(openApiDocument));
+            }
+            if (string.IsNullOrEmpty(key))
+            {
+                throw new ArgumentNullException(nameof(key));
+            }
+            if (string.IsNullOrEmpty(separator))
+            {
+                throw new ArgumentNullException(nameof(separator));
+            }
+            var parts = key.Split(new string[] { separator }, StringSplitOptions.None);
+            var count = parts.Length;
+            OpenApiPathItem path = null;
+            OpenApiOperation operation = null;
+            OpenApiResponse response = null;
+            if (count >= 1)
+            {
+                path = openApiDocument.GetPaths(x => x == parts[0]).FirstOrDefault().Value;
+            }
+            if (count >= 2 && path != null)
+            {
+                operation = path.Operations.Where(x => x.Key.ToString().ToLower() == parts[1].ToLower()).FirstOrDefault().Value;
+            }
+            if (count == 3 && path != null && operation != null)
+            {
+                response = operation.Responses.Where(x => x.Key == parts[2]).FirstOrDefault().Value;
+            }
+            return count == 1 ? path : (count == 2 ? operation : (count == 3 ? response : null));
+        }
+        public static object FindByKey(this OpenApiDocument openApiDocument, string key, out OpenApiKeyType openApiKeyType, string separator = ">")
+        {
+            if (openApiDocument == null)
+            {
+                throw new ArgumentNullException(nameof(openApiDocument));
+            }
+            if (string.IsNullOrEmpty(key))
+            {
+                throw new ArgumentNullException(nameof(key));
+            }
+            if (string.IsNullOrEmpty(separator))
+            {
+                throw new ArgumentNullException(nameof(separator));
+            }
+            var parts = key.Split(new string[] { separator }, StringSplitOptions.None);
+            var count = parts.Length;
+            OpenApiPathItem path = null;
+            OpenApiOperation operation = null;
+            OpenApiResponse response = null;
+            openApiKeyType = OpenApiKeyType.None;
+            if (count >= 1)
+            {
+                path = openApiDocument.GetPaths(x => x == parts[0]).FirstOrDefault().Value;
+                if (path != null)
+                {
+                    openApiKeyType = OpenApiKeyType.Path;
+                }
+            }
+            if (count >= 2 && path != null)
+            {                
+                operation = path.Operations.Where(x => x.Key.ToString().ToLower() == parts[1].ToLower()).FirstOrDefault().Value;
+                if (operation != null)
+                {
+                    openApiKeyType = OpenApiKeyType.Operation;
+                }
+            }
+            if (count == 3 && path != null && operation != null)
+            {
+                
+                response = operation.Responses.Where(x => x.Key == parts[2]).FirstOrDefault().Value;
+                if (response != null)
+                {
+                    openApiKeyType = OpenApiKeyType.Response;
+                }
+            }
+
+            return count == 1 ? path : (count == 2 ? operation : (count == 3 ? response : null));
         }
         // ---------------------------------------------------------------------------------------------------------------------------------------------------------------
         public static IList<OpenApiSchema> GetComponentsSchema(this OpenApiDocument openApiDocument)
