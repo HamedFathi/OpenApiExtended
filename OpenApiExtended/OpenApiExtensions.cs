@@ -581,9 +581,214 @@ namespace OpenApiExtended
             var apiMediaTypes = requestBody.Content
                 .Where(x => predicate((OpenApiMimeType)ConvertToOpenApiMimeType<OpenApiMimeType>(x.Key)))
                 .Select(x => x.Value).ToList();
+            var schemas = apiMediaTypes.Select(x => x.Schema).ToList();
+            count = schemas.Count;
+            return schemas;
+        }
+        // ---------------------------------------------------------------------------------------------------------------------------------------------------------------
+        public static IList<OpenApiSchema> GetRequestBodySchema(this OpenApiRequestBody openApiRequestBody)
+        {
+            if (openApiRequestBody == null)
+            {
+                throw new ArgumentNullException(nameof(openApiRequestBody));
+            }
+            if (openApiRequestBody == null)
+            {
+                return null;
+            }
+            var apiMediaTypes = openApiRequestBody.Content
+                .Select(x => x.Value)
+                .ToList()
+                ;
+            var schemas = apiMediaTypes.Select(x => x.Schema).ToList();
+            return schemas;
+        }
+        public static IList<OpenApiSchema> GetRequestBodySchema(this OpenApiRequestBody openApiRequestBody, out int count)
+        {
+            if (openApiRequestBody == null)
+            {
+                throw new ArgumentNullException(nameof(openApiRequestBody));
+            }
+
+            if (openApiRequestBody == null)
+            {
+                count = 0;
+                return null;
+            }
+            var apiMediaTypes = openApiRequestBody.Content
+                .Select(x => x.Value).ToList();
+
+            var schemas = apiMediaTypes.Select(x => x.Schema).ToList();
+            count = schemas.Count;
+            return schemas;
+        }
+        public static IList<OpenApiSchema> GetRequestBodySchema(this OpenApiRequestBody openApiRequestBody, Func<string, bool> predicate)
+        {
+            if (openApiRequestBody == null)
+            {
+                throw new ArgumentNullException(nameof(openApiRequestBody));
+            }
+            if (openApiRequestBody == null)
+            {
+                return null;
+            }
+            var apiMediaTypes = openApiRequestBody.Content
+                .Where(x => predicate(x.Key))
+                .Select(x => x.Value)
+                .ToList()
+                ;
+            var schemas = apiMediaTypes.Select(x => x.Schema).ToList();
+            return schemas;
+        }
+        public static IList<OpenApiSchema> GetRequestBodySchema(this OpenApiRequestBody openApiRequestBody, Func<string, bool> predicate, out int count)
+        {
+            if (openApiRequestBody == null)
+            {
+                throw new ArgumentNullException(nameof(openApiRequestBody));
+            }
+            if (openApiRequestBody == null)
+            {
+                count = 0;
+                return null;
+            }
+            var apiMediaTypes = openApiRequestBody.Content
+                .Where(x => predicate(x.Key))
+                .Select(x => x.Value).ToList();
+
+            var schemas = apiMediaTypes.Select(x => x.Schema).ToList();
+            count = schemas.Count;
+            return schemas;
+        }
+        public static IList<OpenApiSchema> GetRequestBodySchema(this OpenApiRequestBody openApiRequestBody, Func<OpenApiMimeType, bool> predicate)
+        {
+            if (openApiRequestBody == null)
+            {
+                throw new ArgumentNullException(nameof(openApiRequestBody));
+            }
+            var apiMediaTypes = openApiRequestBody.Content
+                    .Where(x => predicate((OpenApiMimeType)ConvertToOpenApiMimeType<OpenApiMimeType>(x.Key)))
+                    .Select(x => x.Value)
+                    .ToList()
+                ;
+
+            var schemas = apiMediaTypes?.Select(x => x.Schema).ToList();
+            return schemas;
+        }
+        public static IList<OpenApiSchema> GetRequestBodySchema(this OpenApiRequestBody openApiRequestBody, Func<OpenApiMimeType, bool> predicate, out int count)
+        {
+            if (openApiRequestBody == null)
+            {
+                throw new ArgumentNullException(nameof(openApiRequestBody));
+            }
+            if (openApiRequestBody == null)
+            {
+                count = 0;
+                return null;
+            }
+            var apiMediaTypes = openApiRequestBody.Content
+                .Where(x => predicate((OpenApiMimeType)ConvertToOpenApiMimeType<OpenApiMimeType>(x.Key)))
+                .Select(x => x.Value).ToList();
             count = apiMediaTypes.Count;
             var schemas = apiMediaTypes.Select(x => x.Schema).ToList();
             return schemas;
+        }
+        // ---------------------------------------------------------------------------------------------------------------------------------------------------------------
+        public static IList<OpenApiMediaType> GetResponsesContent(this OpenApiRequestBody openApiRequestBody)
+        {
+            if (openApiRequestBody == null)
+            {
+                throw new ArgumentNullException(nameof(openApiRequestBody));
+            }
+            if (openApiRequestBody == null)
+            {
+                return null;
+            }
+            var apiMediaTypes = openApiRequestBody.Content
+                .Select(x => x.Value)
+                .ToList()
+                ;
+            return apiMediaTypes;
+        }
+        public static IList<OpenApiMediaType> GetResponsesContent(this OpenApiRequestBody openApiRequestBody, out int count)
+        {
+            if (openApiRequestBody == null)
+            {
+                throw new ArgumentNullException(nameof(openApiRequestBody));
+            }
+
+            if (openApiRequestBody == null)
+            {
+                count = 0;
+                return null;
+            }
+            var apiMediaTypes = openApiRequestBody.Content
+                .Select(x => x.Value).ToList();
+            count = apiMediaTypes.Count;
+            return apiMediaTypes;
+        }
+        public static IList<OpenApiMediaType> GetResponsesContent(this OpenApiRequestBody openApiRequestBody, Func<string, bool> predicate)
+        {
+            if (openApiRequestBody == null)
+            {
+                throw new ArgumentNullException(nameof(openApiRequestBody));
+            }
+            if (openApiRequestBody == null)
+            {
+                return null;
+            }
+            var apiMediaTypes = openApiRequestBody.Content
+                .Where(x => predicate(x.Key))
+                .Select(x => x.Value)
+                .ToList()
+                ;
+            return apiMediaTypes;
+        }
+        public static IList<OpenApiMediaType> GetResponsesContent(this OpenApiRequestBody openApiRequestBody, Func<string, bool> predicate, out int count)
+        {
+            if (openApiRequestBody == null)
+            {
+                throw new ArgumentNullException(nameof(openApiRequestBody));
+            }
+            if (openApiRequestBody == null)
+            {
+                count = 0;
+                return null;
+            }
+            var apiMediaTypes = openApiRequestBody.Content
+                .Where(x => predicate(x.Key))
+                .Select(x => x.Value).ToList();
+            count = apiMediaTypes.Count;
+            return apiMediaTypes;
+        }
+        public static IList<OpenApiMediaType> GetResponsesContent(this OpenApiRequestBody openApiRequestBody, Func<OpenApiMimeType, bool> predicate)
+        {
+            if (openApiRequestBody == null)
+            {
+                throw new ArgumentNullException(nameof(openApiRequestBody));
+            }
+            var apiMediaTypes = openApiRequestBody.Content
+                    .Where(x => predicate((OpenApiMimeType)ConvertToOpenApiMimeType<OpenApiMimeType>(x.Key)))
+                    .Select(x => x.Value)
+                    .ToList()
+                ;
+            return apiMediaTypes;
+        }
+        public static IList<OpenApiMediaType> GetResponsesContent(this OpenApiRequestBody openApiRequestBody, Func<OpenApiMimeType, bool> predicate, out int count)
+        {
+            if (openApiRequestBody == null)
+            {
+                throw new ArgumentNullException(nameof(openApiRequestBody));
+            }
+            if (openApiRequestBody == null)
+            {
+                count = 0;
+                return null;
+            }
+            var apiMediaTypes = openApiRequestBody.Content
+                .Where(x => predicate((OpenApiMimeType)ConvertToOpenApiMimeType<OpenApiMimeType>(x.Key)))
+                .Select(x => x.Value).ToList();
+            count = apiMediaTypes.Count;
+            return apiMediaTypes;
         }
         // ---------------------------------------------------------------------------------------------------------------------------------------------------------------
         public static IList<OpenApiReference> GetRequestBodySchemaReference(this OpenApiOperation openApiOperation)
@@ -696,6 +901,101 @@ namespace OpenApiExtended
                     .ToList()
                 ;
 
+            var refs = apiMediaTypes?.Select(x => x.Schema.Reference).ToList();
+            count = refs?.Count ?? 0;
+            return refs;
+        }
+        // ---------------------------------------------------------------------------------------------------------------------------------------------------------------
+        public static IList<OpenApiReference> GetRequestBodySchemaReference(this OpenApiRequestBody openApiRequestBody)
+        {
+            if (openApiRequestBody == null)
+            {
+                throw new ArgumentNullException(nameof(openApiRequestBody));
+            }
+            if (openApiRequestBody == null)
+            {
+                return null;
+            }
+            var apiMediaTypes = openApiRequestBody.Content
+                .Select(x => x.Value)
+                .ToList()
+                ;
+            var refs = apiMediaTypes.Select(x => x.Schema.Reference).ToList();
+            return refs;
+        }
+        public static IList<OpenApiReference> GetRequestBodySchemaReference(this OpenApiRequestBody openApiRequestBody, out int count)
+        {
+            if (openApiRequestBody == null)
+            {
+                throw new ArgumentNullException(nameof(openApiRequestBody));
+            }
+            if (openApiRequestBody == null)
+            {
+                count = 0;
+                return null;
+            }
+            var apiMediaTypes = openApiRequestBody.Content
+                .Select(x => x.Value)
+                .ToList()
+                ;
+            var refs = apiMediaTypes.Select(x => x.Schema.Reference).ToList();
+            count = refs.Count;
+            return refs;
+        }
+        public static IList<OpenApiReference> GetRequestBodySchemaReference(this OpenApiRequestBody openApiRequestBody, Func<OpenApiMimeType, bool> predicate)
+        {
+            if (openApiRequestBody == null)
+            {
+                throw new ArgumentNullException(nameof(openApiRequestBody));
+            }
+            var apiMediaTypes = openApiRequestBody?.Content
+                    .Where(x => predicate((OpenApiMimeType)ConvertToOpenApiMimeType<OpenApiMimeType>(x.Key)))
+                    .Select(x => x.Value)
+                    .ToList()
+                ;
+            var refs = apiMediaTypes?.Select(x => x.Schema.Reference).ToList();
+            return refs;
+        }
+        public static IList<OpenApiReference> GetRequestBodySchemaReference(this OpenApiRequestBody openApiRequestBody, Func<OpenApiMimeType, bool> predicate, out int count)
+        {
+            if (openApiRequestBody == null)
+            {
+                throw new ArgumentNullException(nameof(openApiRequestBody));
+            }
+            var apiMediaTypes = openApiRequestBody?.Content
+                    .Where(x => predicate((OpenApiMimeType)ConvertToOpenApiMimeType<OpenApiMimeType>(x.Key)))
+                    .Select(x => x.Value)
+                    .ToList()
+                ;
+            var refs = apiMediaTypes?.Select(x => x.Schema.Reference).ToList();
+            count = refs?.Count ?? 0;
+            return refs;
+        }
+        public static IList<OpenApiReference> GetRequestBodySchemaReference(this OpenApiRequestBody openApiRequestBody, Func<string, bool> predicate)
+        {
+            if (openApiRequestBody == null)
+            {
+                throw new ArgumentNullException(nameof(openApiRequestBody));
+            }
+            var apiMediaTypes = openApiRequestBody?.Content
+                    .Where(x => predicate(x.Key))
+                    .Select(x => x.Value)
+                    .ToList()
+                ;
+            var refs = apiMediaTypes?.Select(x => x.Schema.Reference).ToList();
+            return refs;
+        }
+        public static IList<OpenApiReference> GetRequestBodySchemaReference(this OpenApiRequestBody openApiRequestBody, Func<string, bool> predicate, out int count)
+        {
+            if (openApiRequestBody == null)
+            {
+                throw new ArgumentNullException(nameof(openApiRequestBody));
+            }
+            var apiMediaTypes = openApiRequestBody?.Content
+                    .Where(x => predicate(x.Key))
+                    .Select(x => x.Value)
+                    .ToList()
+                ;
             var refs = apiMediaTypes?.Select(x => x.Schema.Reference).ToList();
             count = refs?.Count ?? 0;
             return refs;
@@ -931,6 +1231,220 @@ namespace OpenApiExtended
             return schemas;
         }
         // ---------------------------------------------------------------------------------------------------------------------------------------------------------------
+        public static IList<OpenApiReference> GetResponsesSchemaReference(this OpenApiResponse openApiResponse)
+        {
+            if (openApiResponse == null)
+            {
+                throw new ArgumentNullException(nameof(openApiResponse));
+            }
+            var refs = openApiResponse.Content.Select(x => x.Value.Schema.Reference).ToList();
+            return refs;
+        }
+        public static IList<OpenApiReference> GetResponsesSchemaReference(this OpenApiResponse openApiResponse, out int count)
+        {
+            if (openApiResponse == null)
+            {
+                throw new ArgumentNullException(nameof(openApiResponse));
+            }
+            var refs = openApiResponse.Content.Select(x => x.Value.Schema.Reference).ToList();
+            count = refs.Count;
+            return refs;
+        }
+        public static IList<OpenApiReference> GetResponsesSchemaReference(this OpenApiResponse openApiResponse, Func<OpenApiMimeType, bool> mimeType)
+        {
+            if (openApiResponse == null)
+            {
+                throw new ArgumentNullException(nameof(openApiResponse));
+            }
+            var refs = openApiResponse.Content
+                .Where(x => mimeType((OpenApiMimeType)ConvertToOpenApiMimeType<OpenApiMimeType>(x.Key)))
+                .Select(x => x.Value.Schema.Reference)
+                .ToList();
+            return refs;
+        }
+        public static IList<OpenApiReference> GetResponsesSchemaReference(this OpenApiResponse openApiResponse, Func<OpenApiMimeType, bool> mimeType, out int count)
+        {
+            if (openApiResponse == null)
+            {
+                throw new ArgumentNullException(nameof(openApiResponse));
+            }
+            var refs = openApiResponse.Content
+                .Where(x => mimeType((OpenApiMimeType)ConvertToOpenApiMimeType<OpenApiMimeType>(x.Key)))
+                .Select(x => x.Value.Schema.Reference)
+                .ToList();
+            count = refs.Count;
+            return refs;
+        }
+        public static IList<OpenApiReference> GetResponsesSchemaReference(this OpenApiResponse openApiResponse, Func<string, bool> mimeType)
+        {
+            if (openApiResponse == null)
+            {
+                throw new ArgumentNullException(nameof(openApiResponse));
+            }
+            var refs = openApiResponse.Content
+                .Where(x => mimeType(x.Key))
+                .Select(x => x.Value.Schema.Reference)
+                .ToList();
+            return refs;
+        }
+        public static IList<OpenApiReference> GetResponsesSchemaReference(this OpenApiResponse openApiResponse, Func<string, bool> mimeType, out int count)
+        {
+            if (openApiResponse == null)
+            {
+                throw new ArgumentNullException(nameof(openApiResponse));
+            }
+            var refs = openApiResponse.Content
+                .Where(x => mimeType(x.Key))
+                .Select(x => x.Value.Schema.Reference)
+                .ToList();
+            count = refs.Count;
+            return refs;
+        }
+        // ---------------------------------------------------------------------------------------------------------------------------------------------------------------
+        public static IList<OpenApiMediaType> GetResponsesContent(this OpenApiResponse openApiResponse)
+        {
+            if (openApiResponse == null)
+            {
+                throw new ArgumentNullException(nameof(openApiResponse));
+            }
+            var mediaTypes = openApiResponse.Content.Select(x => x.Value).ToList();
+            return mediaTypes;
+        }
+        public static IList<OpenApiMediaType> GetResponsesContent(this OpenApiResponse openApiResponse, out int count)
+        {
+            if (openApiResponse == null)
+            {
+                throw new ArgumentNullException(nameof(openApiResponse));
+            }
+            var mediaTypes = openApiResponse.Content.Select(x => x.Value).ToList();
+            count = mediaTypes.Count;
+            return mediaTypes;
+        }
+        public static IList<OpenApiMediaType> GetResponsesContent(this OpenApiResponse openApiResponse, Func<string, bool> mimeType)
+        {
+            if (openApiResponse == null)
+            {
+                throw new ArgumentNullException(nameof(openApiResponse));
+            }
+
+            var mediaTypes = openApiResponse.Content
+                .Where(x => mimeType(x.Key))
+                .Select(x => x.Value)
+                .ToList();
+            return mediaTypes;
+        }
+        public static IList<OpenApiMediaType> GetResponsesContent(this OpenApiResponse openApiResponse, Func<string, bool> mimeType, out int count)
+        {
+            if (openApiResponse == null)
+            {
+                throw new ArgumentNullException(nameof(openApiResponse));
+            }
+            var mediaTypes = openApiResponse.Content
+                .Where(x => mimeType(x.Key))
+                .Select(x => x.Value)
+                .ToList();
+            count = mediaTypes.Count;
+            return mediaTypes;
+        }
+        public static IList<OpenApiMediaType> GetResponsesContent(this OpenApiResponse openApiResponse, Func<OpenApiMimeType, bool> mimeType)
+        {
+            if (openApiResponse == null)
+            {
+                throw new ArgumentNullException(nameof(openApiResponse));
+            }
+
+            var mediaTypes = openApiResponse.Content
+                .Where(x => mimeType((OpenApiMimeType)Enum.Parse(typeof(OpenApiMimeType), x.Key)))
+                .Select(x => x.Value)
+                .ToList();
+            return mediaTypes;
+        }
+        public static IList<OpenApiMediaType> GetResponsesContent(this OpenApiResponse openApiResponse, Func<OpenApiMimeType, bool> mimeType, out int count)
+        {
+            if (openApiResponse == null)
+            {
+                throw new ArgumentNullException(nameof(openApiResponse));
+            }
+            var mediaTypes = openApiResponse.Content
+                .Where(x => mimeType((OpenApiMimeType)Enum.Parse(typeof(OpenApiMimeType), x.Key)))
+                .Select(x => x.Value)
+                .ToList();
+            count = mediaTypes.Count;
+            return mediaTypes;
+        }
+        // ---------------------------------------------------------------------------------------------------------------------------------------------------------------
+        public static IList<OpenApiSchema> GetResponsesSchema(this OpenApiResponse openApiResponse)
+        {
+            if (openApiResponse == null)
+            {
+                throw new ArgumentNullException(nameof(openApiResponse));
+            }
+            var schemas = openApiResponse.Content.Select(x => x.Value.Schema).ToList();
+            return schemas;
+        }
+        public static IList<OpenApiSchema> GetResponsesSchema(this OpenApiResponse openApiResponse, out int count)
+        {
+            if (openApiResponse == null)
+            {
+                throw new ArgumentNullException(nameof(openApiResponse));
+            }
+            var schemas = openApiResponse.Content.Select(x => x.Value.Schema).ToList();
+            count = schemas.Count;
+            return schemas;
+        }
+        public static IList<OpenApiSchema> GetResponsesSchema(this OpenApiResponse openApiResponse, Func<string, bool> mimeType)
+        {
+            if (openApiResponse == null)
+            {
+                throw new ArgumentNullException(nameof(openApiResponse));
+            }
+
+            var schemas = openApiResponse.Content
+                .Where(x => mimeType(x.Key))
+                .Select(x => x.Value.Schema)
+                .ToList();
+            return schemas;
+        }
+        public static IList<OpenApiSchema> GetResponsesSchema(this OpenApiResponse openApiResponse, Func<string, bool> mimeType, out int count)
+        {
+            if (openApiResponse == null)
+            {
+                throw new ArgumentNullException(nameof(openApiResponse));
+            }
+            var schemas = openApiResponse.Content
+                .Where(x => mimeType(x.Key))
+                .Select(x => x.Value.Schema)
+                .ToList();
+            count = schemas.Count;
+            return schemas;
+        }
+        public static IList<OpenApiSchema> GetResponsesSchema(this OpenApiResponse openApiResponse, Func<OpenApiMimeType, bool> mimeType)
+        {
+            if (openApiResponse == null)
+            {
+                throw new ArgumentNullException(nameof(openApiResponse));
+            }
+
+            var schemas = openApiResponse.Content
+                .Where(x => mimeType((OpenApiMimeType)ConvertToOpenApiMimeType<OpenApiMimeType>(x.Key)))
+                .Select(x => x.Value.Schema)
+                .ToList();
+            return schemas;
+        }
+        public static IList<OpenApiSchema> GetResponsesSchema(this OpenApiResponse openApiResponse, Func<OpenApiMimeType, bool> mimeType, out int count)
+        {
+            if (openApiResponse == null)
+            {
+                throw new ArgumentNullException(nameof(openApiResponse));
+            }
+            var schemas = openApiResponse.Content
+                .Where(x => mimeType((OpenApiMimeType)ConvertToOpenApiMimeType<OpenApiMimeType>(x.Key)))
+                .Select(x => x.Value.Schema)
+                .ToList();
+            count = schemas.Count;
+            return schemas;
+        }
+        // ---------------------------------------------------------------------------------------------------------------------------------------------------------------
         public static IList<OpenApiReference> GetResponsesSchemaReference(this OpenApiOperation openApiOperation)
         {
             if (openApiOperation == null)
@@ -1160,6 +1674,64 @@ namespace OpenApiExtended
             }
             return openApiSchema.Format;
         }
+        public static bool HasReference(this OpenApiSchema openApiSchema)
+        {
+            if (openApiSchema == null)
+            {
+                throw new ArgumentNullException(nameof(openApiSchema));
+            }
+            return openApiSchema.Reference != null;
+        }
+        public static bool HasMissingReference(this OpenApiSchema openApiSchema)
+        {
+            if (openApiSchema == null)
+            {
+                throw new ArgumentNullException(nameof(openApiSchema));
+            }
+            return openApiSchema.Reference != null
+                && (openApiSchema.Properties == null || openApiSchema.Properties.Count == 0)
+                && (openApiSchema.Items == null)
+                ;
+        }
+        public static OpenApiSchema GetReference(this OpenApiSchema openApiSchema, OpenApiDocument openApiDocument)
+        {
+            if (openApiSchema == null)
+            {
+                throw new ArgumentNullException(nameof(openApiSchema));
+            }
+            if (openApiDocument == null)
+            {
+                throw new ArgumentNullException(nameof(openApiDocument));
+            }
+
+            if (!openApiSchema.HasReference()) return null;
+
+            var refId = openApiSchema.Reference.Id;
+            var result = openApiDocument.GetComponentsSchema(x => x == refId)?.FirstOrDefault();
+            return result;
+        }
+        public static OpenApiSchema GetReference(this OpenApiSchema openApiSchema, OpenApiDocument openApiDocument, out string referenceId)
+        {
+            if (openApiSchema == null)
+            {
+                throw new ArgumentNullException(nameof(openApiSchema));
+            }
+            if (openApiDocument == null)
+            {
+                throw new ArgumentNullException(nameof(openApiDocument));
+            }
+
+            if (!openApiSchema.HasReference())
+            {
+                referenceId = null;
+                return null;
+            }
+
+            var refId = openApiSchema.Reference.Id;
+            referenceId = refId;
+            var result = openApiDocument.GetComponentsSchema(x => x == refId)?.FirstOrDefault();
+            return result;
+        }
         public static IEnumerable<string> GetRequired(this OpenApiSchema openApiSchema)
         {
             if (openApiSchema == null)
@@ -1168,54 +1740,65 @@ namespace OpenApiExtended
             }
             return openApiSchema.Required.Select(x => x);
         }
-        // ---------------------------------------------------------------------------------------------------------------------------------------------------------------
-        private static IDictionary<string, OpenApiSchema> GetSchemaMembers(this OpenApiSchema openApiSchema, string memberName = null, IDictionary<string, OpenApiSchema> list = null)
+        public static IEnumerable<string> GetRequired(this OpenApiSchema openApiSchema, Func<string, bool> predicate)
         {
             if (openApiSchema == null)
             {
                 throw new ArgumentNullException(nameof(openApiSchema));
             }
-            if (memberName == null)
+            return openApiSchema.Required.Where(x => predicate(x)).Select(x => x);
+        }
+        // ---------------------------------------------------------------------------------------------------------------------------------------------------------------
+        private static IDictionary<IList<string>, OpenApiSchema> GetSchemaMembers(this OpenApiSchema openApiSchema, IList<string> path = null, string parentType = null, IDictionary<IList<string>, OpenApiSchema> list = null)
+        {
+            if (openApiSchema == null)
             {
-                memberName = string.Empty;
+                throw new ArgumentNullException(nameof(openApiSchema));
+            }
+            if (path == null)
+            {
+                path = new List<string>();
             }
             if (list == null)
             {
-                list = new Dictionary<string, OpenApiSchema>();
+                list = new Dictionary<IList<string>, OpenApiSchema>();
             }
             // Array Type
             if (openApiSchema.IsArray())
             {
-                // Root
-                if (string.IsNullOrEmpty(memberName))
-                    list.Add(memberName, openApiSchema);
-
                 var items = openApiSchema.Items;
-                items.GetSchemaMembers(memberName, list);
+                items.GetSchemaMembers(path, "array", list);
             }
             // Object Type
             else if (openApiSchema.IsObject())
             {
-                // Root
-                if (string.IsNullOrEmpty(memberName))
-                    list.Add(memberName, openApiSchema);
-
                 var props = openApiSchema.Properties;
                 foreach (var prop in props)
                 {
                     var propName = prop.Key;
-                    list.Add(propName, prop.Value);
-                    prop.Value.GetSchemaMembers(propName, list);
+                    var newPath = new List<string>();
+                    newPath.AddRange(path);
+                    newPath.Add(propName);
+                    list.Add(newPath, prop.Value);
+                    prop.Value.GetSchemaMembers(newPath, "object", list);
                 }
             }
             // Simple Type
             else
             {
-                // No need to add!
+                if (parentType == "array")
+                {
+                    var newPath = new List<string>();
+                    newPath.AddRange(path);
+                    var type = openApiSchema.Type.ToLower();
+                    var format = string.IsNullOrEmpty(openApiSchema.Format) ? "" : ">" + openApiSchema.Format.ToLower();
+                    newPath.Add($".[{type}{format}]");
+                    list.Add(newPath, openApiSchema);
+                }
             }
             return list;
         }
-        public static IDictionary<string, OpenApiSchema> GetMembers(this OpenApiSchema openApiSchema)
+        public static IDictionary<IList<string>, OpenApiSchema> GetMembers(this OpenApiSchema openApiSchema)
         {
             if (openApiSchema == null)
             {
@@ -1224,7 +1807,6 @@ namespace OpenApiExtended
             return GetSchemaMembers(openApiSchema);
         }
         // ---------------------------------------------------------------------------------------------------------------------------------------------------------------
-
     }
 }
 
