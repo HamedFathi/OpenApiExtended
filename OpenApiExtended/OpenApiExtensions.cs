@@ -1891,8 +1891,8 @@ namespace OpenApiExtended
                     var newPath = new List<string>();
                     newPath.AddRange(path);
                     var type = openApiSchema.Type.ToLower();
-                    var format = string.IsNullOrEmpty(openApiSchema.Format) ? "" : "." + openApiSchema.Format.ToLower();
-                    newPath.Add($"{path.Last()}...[{type}{format}]");
+                    var format = string.IsNullOrEmpty(openApiSchema.Format) ? "" : Constants.ArrayItemFormatSeparator + openApiSchema.Format.ToLower();
+                    newPath.Add($"{path.Last()}{Constants.ArrayItemSeparator}{type}{format}]");
                     list.Add(newPath, openApiSchema);
                 }
             }
@@ -1925,10 +1925,8 @@ namespace OpenApiExtended
                     if (member.Value.Type == "array") parentType = "array";
                     continue;
                 }
-
                 var name = member.Key.Last();
-                var arrayItemRegex = new Regex(@"(.+)\.\.\.\[(.+)\]");
-                var nameInRequired = arrayItemRegex.IsMatch(name) ? arrayItemRegex.Match(name).Groups[1].Value : name;
+                var nameInRequired = Constants.ArrayItemRegex.IsMatch(name) ? Constants.ArrayItemRegex.Match(name).Groups[1].Value : name;
                 var parents = member.Key.SkipLast(1).ToArray();
 
                 result.Add(new OpenApiMembersInfo
@@ -1937,7 +1935,9 @@ namespace OpenApiExtended
                     Name = name,
                     Parents = parents,
                     Value = member.Value,
-                    ParentType = parents.Length == 0 ? parentType : result.Find(x => x.Path.Aggregate((a, b) => a + "." + b) == parents.Aggregate((a, b) => a + "." + b)).Type,
+                    ParentType = parents.Length == 0
+                            ? parentType
+                            : result.Find(x => x.Path.Aggregate((a, b) => $"{a}.{b}") == parents.Aggregate((a, b) => $"{a}.{b}")).Type,
                     HasItems = member.Value.IsArray(),
                     HasEmptyReference = member.Value.HasEmptyReference(),
                     HasProperties = member.Value.IsObject(),

@@ -13,18 +13,8 @@ namespace OpenApiExtended
         public bool HasEmptyReference { get; set; }
         public bool HasProperties { get; set; }
         public bool IsPrimitive { get; set; }
-        public bool IsInRoot
-        {
-            get { return Parents.Length == 0; }
-        }
-        public bool IsArrayItem
-        {
-            get
-            {
-                var arrayItemRegex = new Regex(@"(.+)\.\.\.\[(.+)\]");
-                return arrayItemRegex.IsMatch(Name);
-            }
-        }
+        public bool IsInRoot => Parents.Length == 0;
+        public bool IsArrayItem => Constants.ArrayItemRegex.IsMatch(Name);
         public bool HasItems { get; set; }
         public bool Required { get; set; }
         public string[] Parents { get; set; }
