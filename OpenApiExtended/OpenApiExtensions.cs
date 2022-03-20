@@ -1748,6 +1748,14 @@ namespace OpenApiExtended
             }
             return openApiSchema.Required.Where(x => predicate(x)).Select(x => x);
         }
+        public static bool IsRequired(this OpenApiSchema openApiSchema, Func<string, bool> predicate)
+        {
+            if (openApiSchema == null)
+            {
+                throw new ArgumentNullException(nameof(openApiSchema));
+            }
+            return openApiSchema.Required.Any(x => predicate(x));
+        }
         // ---------------------------------------------------------------------------------------------------------------------------------------------------------------
         private static IDictionary<IList<string>, OpenApiSchema> GetSchemaMembers(this OpenApiSchema openApiSchema, IList<string> path = null, string parentType = null, IDictionary<IList<string>, OpenApiSchema> list = null)
         {
