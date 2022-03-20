@@ -1641,7 +1641,7 @@ namespace OpenApiExtended
                 }
             }
             if (count >= 2 && path != null)
-            {                
+            {
                 operation = path.Operations.Where(x => x.Key.ToString().ToLower() == parts[1].ToLower()).FirstOrDefault().Value;
                 if (operation != null)
                 {
@@ -1650,7 +1650,7 @@ namespace OpenApiExtended
             }
             if (count == 3 && path != null && operation != null)
             {
-                
+
                 response = operation.Responses.Where(x => x.Key == parts[2]).FirstOrDefault().Value;
                 if (response != null)
                 {
@@ -1767,7 +1767,7 @@ namespace OpenApiExtended
             }
             return openApiSchema.Reference != null;
         }
-        public static bool HasOnlyReference(this OpenApiSchema openApiSchema)
+        public static bool HasEmptyReference(this OpenApiSchema openApiSchema)
         {
             if (openApiSchema == null)
             {
@@ -1884,8 +1884,8 @@ namespace OpenApiExtended
                     var newPath = new List<string>();
                     newPath.AddRange(path);
                     var type = openApiSchema.Type.ToLower();
-                    var format = string.IsNullOrEmpty(openApiSchema.Format) ? "" : ">" + openApiSchema.Format.ToLower();
-                    newPath.Add($".[{type}{format}]");
+                    var format = string.IsNullOrEmpty(openApiSchema.Format) ? "" : "." + openApiSchema.Format.ToLower();
+                    newPath.Add($"{path.Aggregate((a, b) => a + "." + b)}.[{type}{format}]");
                     list.Add(newPath, openApiSchema);
                 }
             }
