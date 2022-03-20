@@ -1,14 +1,29 @@
 ﻿using Microsoft.OpenApi.Models;
+using System.Text.RegularExpressions;
 
 namespace OpenApiExtended
 {
     public class OpenApiMembersInfo
     {
-        public OpenApiMembersType Type { get; set; }
-        public OpenApiMembersType ParentType { get; set; }
+        public string Type { get; set; }
+        public string Format { get; set; }
+        public string ParentType { get; set; }
         public bool HasReference { get; set; }
-        public bool HasMissingReference { get; set; }
+        public bool HasEmptyReference { get; set; }
         public bool HasProperties { get; set; }
+        public bool IsPrimitive { get; set; }
+        public bool IsInRoot
+        {
+            get { return Parents.Length == 0; }
+        }
+        public bool IsArrayItem
+        {
+            get
+            {
+                var arrayItemRegex = new Regex(@"(.+)\.\.\.\[(.+)\]");
+                return arrayItemRegex.IsMatch(Name);
+            }
+        }
         public bool HasItems { get; set; }
         public bool Required { get; set; }
         public string[] Parents { get; set; }

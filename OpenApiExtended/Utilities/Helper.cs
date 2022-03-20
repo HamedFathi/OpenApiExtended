@@ -31,5 +31,20 @@ namespace OpenApiExtended
             var result = JsonSerializer.Serialize(parsedJson, new JsonSerializerOptions { WriteIndented = true });
             return result;
         }
+
+        internal static IEnumerable<T> SkipLast<T>(this IEnumerable<T> source, int count)
+        {
+            var enumerator = source.GetEnumerator();
+            var queue = new Queue<T>(count + 1);
+
+            while (true)
+            {
+                if (!enumerator.MoveNext())
+                    break;
+                queue.Enqueue(enumerator.Current);
+                if (queue.Count > count)
+                    yield return queue.Dequeue();
+            }
+        }
     }
 }

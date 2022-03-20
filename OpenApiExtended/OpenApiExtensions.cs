@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.RegularExpressions;
 using Microsoft.OpenApi.Models;
 
 namespace OpenApiExtended
@@ -1842,7 +1843,7 @@ namespace OpenApiExtended
             return openApiSchema.Required.Any(x => predicate(x));
         }
         // ---------------------------------------------------------------------------------------------------------------------------------------------------------------
-        private static IDictionary<IList<string>, OpenApiSchema> GetSchemaMembers(this OpenApiSchema openApiSchema, IList<string> path = null, string parentType = null, IDictionary<IList<string>, OpenApiSchema> list = null)
+        private static IDictionary<IList<string>, OpenApiSchema> GetSchemaMembers(this OpenApiSchema openApiSchema, IList<string> path = null, string parentType = null, IDictionary<IList<string>, OpenApiSchema> list = null, bool includeMainSchema = false)
         {
             if (openApiSchema == null)
             {
@@ -1855,6 +1856,11 @@ namespace OpenApiExtended
             if (list == null)
             {
                 list = new Dictionary<IList<string>, OpenApiSchema>();
+            }
+            if (path.Count == 0 && parentType == null && list.Count == 0 && includeMainSchema)
+            {
+                var newPath = new List<string>();
+                list.Add(newPath, openApiSchema);
             }
             // Array Type
             if (openApiSchema.IsArray())
@@ -1885,19 +1891,81 @@ namespace OpenApiExtended
                     newPath.AddRange(path);
                     var type = openApiSchema.Type.ToLower();
                     var format = string.IsNullOrEmpty(openApiSchema.Format) ? "" : "." + openApiSchema.Format.ToLower();
-                    newPath.Add($"{path.Aggregate((a, b) => a + "." + b)}.[{type}{format}]");
+                    newPath.Add($"{path.Last()}...[{type}{format}]");
                     list.Add(newPath, openApiSchema);
                 }
             }
             return list;
         }
-        public static IDictionary<IList<string>, OpenApiSchema> GetMembers(this OpenApiSchema openApiSchema)
+        public static IDictionary<IList<string>, OpenApiSchema> GetMembers(this OpenApiSchema openApiSchema, bool includeMainSchema = false)
         {
             if (openApiSchema == null)
             {
                 throw new ArgumentNullException(nameof(openApiSchema));
             }
-            return GetSchemaMembers(openApiSchema);
+            return GetSchemaMembers(openApiSchema, includeMainSchema: includeMainSchema);
+        }
+        public static IList<OpenApiMembersInfo> GetMembersInfo(this OpenApiSchema openApiSchema)
+        {
+            if (openApiSchema == null)
+            {
+                throw new ArgumentNullException(nameof(openApiSchema));
+            }
+            var result = new List<OpenApiMembersInfo>();
+            var members = GetMembers(openApiSchema, true);
+            var parentType = string.Empty;
+
+            foreach (var member in members)
+            {
+                var count = member.Key.Count;
+                if (count == 0)
+                {
+                    if (member.Value.Type == "object") parentType = "object";
+                    if (member.Value.Type == "array") parentType = "array";
+                    continue;
+                }
+
+                var name = member.Key.Last();
+                var arrayItemRegex = new Regex(@"(.+)\.\.\.\[(.+)\]");
+                var nameInRequired = arrayItemRegex.IsMatch(name) ? arrayItemRegex.Match(name).Groups[1].Value : name;
+                var parents = member.Key.SkipLast(1).ToArray();
+
+                result.Add(new OpenApiMembersInfo
+                {
+                    Name = name,
+                    Parents = parents,
+                    Value = member.Value,
+                    ParentType = parentType,
+                    HasItems = member.Value.IsArray(),
+                    HasEmptyReference = member.Value.HasEmptyReference(),
+                    HasProperties = member.Value.IsObject(),
+                    HasReference = member.Value.HasReference(),
+                    IsPrimitive = member.Value.IsPrimitive(),
+                    Format = member.Value.Format,
+                    Type = member.Value.Type,
+                    Required = openApiSchema.IsRequired(x => x == nameInRequired)
+                });
+
+                if (member.Value.Type == "object") parentType = "object";
+                if (member.Value.Type == "array") parentType = "array";
+            }
+            return result;
+        }
+        public static void Traverse(this OpenApiSchema openApiSchema, Action<OpenApiMembersInfo> action)
+        {
+            if (openApiSchema == null)
+            {
+                throw new ArgumentNullException(nameof(openApiSchema));
+            }
+            if (action == null)
+            {
+                throw new ArgumentNullException(nameof(action));
+            }
+            var members = GetMembersInfo(openApiSchema);
+            foreach (var member in members)
+            {
+                action(member);
+            }
         }
         // ---------------------------------------------------------------------------------------------------------------------------------------------------------------
     }
