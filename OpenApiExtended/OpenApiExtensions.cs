@@ -1682,7 +1682,7 @@ namespace OpenApiExtended
             }
             return openApiSchema.Reference != null;
         }
-        public static bool HasMissingReference(this OpenApiSchema openApiSchema)
+        public static bool HasOnlyReference(this OpenApiSchema openApiSchema)
         {
             if (openApiSchema == null)
             {
