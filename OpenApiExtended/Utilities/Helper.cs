@@ -26,6 +26,10 @@ namespace OpenApiExtended
         }
         internal static string ToFormattedJson(this string jsonText)
         {
+            if (string.IsNullOrEmpty(jsonText))
+            {
+                return jsonText;
+            }
             jsonText = jsonText.Trim().Trim(',');
             var parsedJson = JsonDocument.Parse(jsonText, new JsonDocumentOptions() { AllowTrailingCommas = true });
             var result = JsonSerializer.Serialize(parsedJson, new JsonSerializerOptions { WriteIndented = true });
@@ -45,6 +49,26 @@ namespace OpenApiExtended
                 if (queue.Count > count)
                     yield return queue.Dequeue();
             }
+        }
+
+        internal static string ReplaceFirst(this string text, string search, string replace)
+        {
+            int pos = text.IndexOf(search);
+            if (pos < 0)
+            {
+                return text;
+            }
+            return text.Substring(0, pos) + replace + text.Substring(pos + search.Length);
+        }
+        internal static string ReplaceLast(string text, string search, string replace)
+        {
+            int place = text.LastIndexOf(search);
+
+            if (place == -1)
+                return text;
+
+            string result = text.Remove(place, search.Length).Insert(place, replace);
+            return result;
         }
     }
 }

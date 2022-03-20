@@ -7,6 +7,7 @@ namespace OpenApiExtended
     {
         public string Type { get; set; }
         public string Format { get; set; }
+        public string[] Path { get; set; }
         public string ParentType { get; set; }
         public bool HasReference { get; set; }
         public bool HasEmptyReference { get; set; }

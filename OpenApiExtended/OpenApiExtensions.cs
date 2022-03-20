@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
 using System.Text.RegularExpressions;
 using Microsoft.OpenApi.Models;
 
@@ -1932,10 +1933,11 @@ namespace OpenApiExtended
 
                 result.Add(new OpenApiMembersInfo
                 {
+                    Path = member.Key.ToArray(),
                     Name = name,
                     Parents = parents,
                     Value = member.Value,
-                    ParentType = parentType,
+                    ParentType = parents.Length == 0 ? parentType : result.Find(x => x.Path.Aggregate((a, b) => a + "." + b) == parents.Aggregate((a, b) => a + "." + b)).Type,
                     HasItems = member.Value.IsArray(),
                     HasEmptyReference = member.Value.HasEmptyReference(),
                     HasProperties = member.Value.IsObject(),
@@ -1945,9 +1947,6 @@ namespace OpenApiExtended
                     Type = member.Value.Type,
                     Required = openApiSchema.IsRequired(x => x == nameInRequired)
                 });
-
-                if (member.Value.Type == "object") parentType = "object";
-                if (member.Value.Type == "array") parentType = "array";
             }
             return result;
         }
@@ -1968,6 +1967,84 @@ namespace OpenApiExtended
             }
         }
         // ---------------------------------------------------------------------------------------------------------------------------------------------------------------
+        public static string ToJsonExample(this OpenApiSchema openApiSchema, Func<OpenApiMembersInfo, object> dataProvider = null)
+        {
+            if (openApiSchema == null)
+            {
+                throw new ArgumentNullException(nameof(openApiSchema));
+            }
+            var firstTry = true;
+            var objectInArray = true;
+            var replacementKey = "@@@REPLACEMENT@@@";
+            var result = "";
+            var members = openApiSchema.GetMembersInfo();
+            foreach (var member in members)
+            {
+                if (firstTry)
+                {
+                    if (member.ParentType == "object")
+                    {
+                        result = $"{{ {replacementKey} }}";
+                    }
+                    if (member.ParentType == "array")
+                    {
+                        result = $"[ {replacementKey} ]";
+                    }
+                    firstTry = false;
+                }
+                if (member.Type == "array")
+                {
+                    if (!objectInArray)
+                    {
+                        result = result.ReplaceFirst(replacementKey, string.Empty);
+                        objectInArray = true;
+                    }
+                    var data = $"\"{member.Name}\": [ {replacementKey} ], {replacementKey}";
+                    result = result.Replace(replacementKey, data);
+                }
+                if (member.Type == "object")
+                {
+                    if (!objectInArray)
+                    {
+                        result = result.ReplaceFirst(replacementKey, string.Empty);
+                        objectInArray = true;
+                    }
+                    var refData = member.HasEmptyReference ? "" : replacementKey;
+                    var data = $"\"{member.Name}\": {{ {refData} }}, {replacementKey}";
+                    result = result.Replace(replacementKey, data);
+                }
+                if (member.Type != "array" && member.Type != "object")
+                {
+                    if (!objectInArray && member.IsInRoot)
+                    {
+                        result = result.ReplaceFirst(replacementKey, string.Empty);
+                        objectInArray = true;
+                    }
+                    if (member.ParentType == "array" && member.IsArrayItem)
+                    {
+                        result = result.ReplaceFirst(replacementKey, "\"default\"");
+                    }
+                    if (member.ParentType == "array" && !member.IsArrayItem)
+                    {
+
+                        if (objectInArray)
+                        {
+                            result = result.ReplaceFirst(replacementKey, $"{{ {replacementKey} }}");
+                            objectInArray = false;
+                        }
+                        result = result.ReplaceFirst(replacementKey, $"\"{member.Name}\": \"default\", {replacementKey}");
+                    }
+                    if (member.ParentType == "object")
+                    {
+                        result = result.ReplaceFirst(replacementKey, $"\"{member.Name}\": \"default\", {replacementKey}");
+                    }
+                }
+            }
+            result = result.Replace(replacementKey, string.Empty);
+            result = result.ToFormattedJson();
+            return result;
+        }
+
     }
 }
 
