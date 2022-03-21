@@ -1860,7 +1860,10 @@ namespace OpenApiExtended
             {
                 throw new ArgumentNullException(nameof(openApiSchema));
             }
-            var result = GetSchemaMembers(openApiSchema);
+
+            var result = GetSchemaMembers(openApiSchema)
+                .DistinctBy(x => x.Value)
+                .ToDictionary(x => x.Key, y => y.Value);
             return result;
         }
         public static void TraverseOnPaths(this OpenApiSchema openApiSchema, Action<string, OpenApiSchema> action)
@@ -1935,68 +1938,101 @@ namespace OpenApiExtended
             return result;
         }
         // ---------------------------------------------------------------------------------------------------------------------------------------------------------------
-        /*
-                public static IList<OpenApiMemberInfo> GetMembersInfo(this OpenApiSchema openApiSchema)
-                {
-                    if (openApiSchema == null)
-                    {
-                        throw new ArgumentNullException(nameof(openApiSchema));
-                    }
-                    var result = new List<OpenApiMemberInfo>();
-                    var members = GetMembers(openApiSchema, true);
-                    var parentType = string.Empty;
 
-                    foreach (var member in members)
+        public static string ToJsonExample(this OpenApiSchema openApiSchema, Func<OpenApiMemberInfo, object> dataProvider = null)
+        {
+            if (openApiSchema == null)
+            {
+                throw new ArgumentNullException(nameof(openApiSchema));
+            }
+            Regex regex = new("___.+?___", RegexOptions.Compiled);
+            var result = "";
+            var members = openApiSchema.GetMembersInfo();
+
+            var groupedMembers = members.GroupBy(x => x.ParentKey).ToList();
+
+            if (members.Count == 0)
+            {
+                if (openApiSchema.IsPrimitive())
+                {
+                    return "\"defaultSingle\"";
+                }
+                return string.Empty;
+            }
+
+            var counter = 0;
+            foreach (var member in members)
+            {
+                if (member.IsRoot)
+                {
+                    if (member.Type == "object")
                     {
-                        var count = member.Key.Count;
-                        if (count == 0)
+                        result = $"{{ {GetReplacementKey(Constants.RootIndicator)} }}";
+                    }
+                    if (member.Type == "array")
+                    {
+                        result = $"[ {GetReplacementKey(Constants.RootIndicator)} ]";
+                    }
+                }
+                else
+                {
+                    if (member.Type == "array")
+                    {
+                        var data = $"\"{member.Name}\": [ {GetReplacementKey(member.PathKey)} ], {GetReplacementKey(member.ParentKey)}";
+                        result = result.ReplaceFirst(GetReplacementKey(member.ParentKey), data);
+                    }
+
+                    if (member.Type == "object")
+                    {
+                        var prevItemWithSameName = members[counter - 1].PathKey == member.PathKey && members[counter - 1].Type == "array";
+                        if (prevItemWithSameName)
                         {
-                            if (member.Value.Type == "object") parentType = "object";
-                            if (member.Value.Type == "array") parentType = "array";
-                            continue;
+                            result = result.ReplaceFirst(GetReplacementKey(member.PathKey), $"{{ {GetReplacementKey(member.PathKey)} }}");
                         }
-                        var name = member.Key.Last();
-                        var nameInRequired = Constants.ArrayItemRegex.IsMatch(name) ? Constants.ArrayItemRegex.Match(name).Groups[1].Value : name;
-                        var parents = member.Key.SkipLast(1).ToArray();
-
-                        result.Add(new OpenApiMemberInfo
+                        else
                         {
-                            Path = member.Key.ToArray(),
-                            Name = name,
-                            Parents = parents,
-                            Value = member.Value,
-                            ParentType = parents.Length == 0
-                                    ? parentType
-                                    : result.Find(x => x.Path.Aggregate((a, b) => $"{a}.{b}") == parents.Aggregate((a, b) => $"{a}.{b}")).Type,
-                            HasItems = member.Value.IsArray(),
-                            HasEmptyReference = member.Value.HasEmptyReference(),
-                            HasProperties = member.Value.IsObject(),
-                            HasReference = member.Value.HasReference(),
-                            IsPrimitive = member.Value.IsPrimitive(),
-                            Format = member.Value.Format,
-                            Type = member.Value.Type,
-                            Required = openApiSchema.IsRequired(x => x == nameInRequired)
-                        });
+                            var refData = member.HasEmptyReference ? "" : GetReplacementKey(member.PathKey);
+                            var data = $"\"{member.Name}\": {{ {refData} }}, {GetReplacementKey(member.ParentKey)}";
+                            result = result.ReplaceFirst(GetReplacementKey(member.ParentKey), data);
+                        }
                     }
-                    return result;
-                }
-                public static void Traverse(this OpenApiSchema openApiSchema, Action<OpenApiMemberInfo> action)
-                {
-                    if (openApiSchema == null)
+                    if (member.Type != "array" && member.Type != "object")
                     {
-                        throw new ArgumentNullException(nameof(openApiSchema));
-                    }
-                    if (action == null)
-                    {
-                        throw new ArgumentNullException(nameof(action));
-                    }
-                    var members = GetMembersInfo(openApiSchema);
-                    foreach (var member in members)
-                    {
-                        action(member);
+                        if (member.ParentType == "array" && member.IsArrayItem)
+                        {
+                            result = result.ReplaceFirst(GetReplacementKey(member.ParentKey), "\"defaultArray\"");
+                        }
+
+                        if (member.ParentType == "array" && !member.IsArrayItem)
+                        {
+                            var parentGroup = groupedMembers.First(x => x.Key == member.ParentKey);
+                            var parentGroupData = parentGroup.Select(x => x.PathKey).ToList();
+                            var parentGroupCount = parentGroupData.Count;
+                            var isLastItem = parentGroupData.FindIndex(x => x == member.PathKey) == parentGroupCount - 1;
+                            var reqKey = isLastItem ? "" : GetReplacementKey(member.ParentKey);
+
+                            result = result.ReplaceFirst(GetReplacementKey(member.ParentKey), $"\"{member.Name}\": \"default\", {reqKey}");
+                        }
+                        if (member.ParentType == "object")
+                        {
+                            result = result.ReplaceFirst(GetReplacementKey(member.ParentKey), $"\"{member.Name}\": \"default\", {GetReplacementKey(member.ParentKey)}");
+                        }
                     }
                 }
-                // ---------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+                counter++;
+            }
+
+            result = regex.Replace(result, string.Empty);
+            result = result.ToFormattedJson();
+            return result;
+
+            string GetReplacementKey(string data) => $"___{data}___";
+        }
+
+
+
+        /*              
                 public static string ToJsonExample(this OpenApiSchema openApiSchema, Func<OpenApiMemberInfo, object> dataProvider = null)
                 {
                     if (openApiSchema == null)
