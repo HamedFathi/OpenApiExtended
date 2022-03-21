@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.RegularExpressions;
 using Microsoft.OpenApi.Models;
 // ReSharper disable UnusedMember.Global
 
@@ -1798,7 +1799,7 @@ namespace OpenApiExtended
             return openApiSchema.Required.Any(predicate);
         }
         // ---------------------------------------------------------------------------------------------------------------------------------------------------------------
-        private static IDictionary<IList<string>, OpenApiSchema> GetSchemaMembers(this OpenApiSchema openApiSchema, IList<string> path = null, string parentType = null, IDictionary<IList<string>, OpenApiSchema> list = null, bool includeMainSchema = false)
+        private static IDictionary<IList<string>, OpenApiSchema> GetSchemaMembers(this OpenApiSchema openApiSchema, IList<string> path = null, string parentType = null, IDictionary<IList<string>, OpenApiSchema> list = null)
         {
             if (openApiSchema == null)
             {
@@ -1807,11 +1808,6 @@ namespace OpenApiExtended
             path ??= new List<string>();
             list ??= new Dictionary<IList<string>, OpenApiSchema>();
 
-            if (path.Count == 0 && parentType == null && list.Count == 0 && includeMainSchema)
-            {
-                var newPath = new List<string>();
-                list.Add(newPath, openApiSchema);
-            }
             // Array Type
             if (openApiSchema.IsArray())
             {
@@ -1821,6 +1817,10 @@ namespace OpenApiExtended
             // Object Type
             else if (openApiSchema.IsObject())
             {
+                var objPath = new List<string>();
+                objPath.AddRange(path);
+                list.Add(objPath, openApiSchema);
+
                 var props = openApiSchema.Properties;
                 foreach (var prop in props)
                 {
@@ -1853,53 +1853,10 @@ namespace OpenApiExtended
             {
                 throw new ArgumentNullException(nameof(openApiSchema));
             }
-            return GetSchemaMembers(openApiSchema, includeMainSchema: includeMainSchema);
-        }
-        public static IList<OpenApiMemberInfo> GetMembersInfo(this OpenApiSchema openApiSchema)
-        {
-            if (openApiSchema == null)
-            {
-                throw new ArgumentNullException(nameof(openApiSchema));
-            }
-            var result = new List<OpenApiMemberInfo>();
-            var members = GetMembers(openApiSchema, true);
-            var parentType = string.Empty;
-
-            foreach (var member in members)
-            {
-                var count = member.Key.Count;
-                if (count == 0)
-                {
-                    if (member.Value.Type == "object") parentType = "object";
-                    if (member.Value.Type == "array") parentType = "array";
-                    continue;
-                }
-                var name = member.Key.Last();
-                var nameInRequired = Constants.ArrayItemRegex.IsMatch(name) ? Constants.ArrayItemRegex.Match(name).Groups[1].Value : name;
-                var parents = member.Key.SkipLast(1).ToArray();
-
-                result.Add(new OpenApiMemberInfo
-                {
-                    Path = member.Key.ToArray(),
-                    Name = name,
-                    Parents = parents,
-                    Value = member.Value,
-                    ParentType = parents.Length == 0
-                            ? parentType
-                            : result.Find(x => x.Path.Aggregate((a, b) => $"{a}.{b}") == parents.Aggregate((a, b) => $"{a}.{b}")).Type,
-                    HasItems = member.Value.IsArray(),
-                    HasEmptyReference = member.Value.HasEmptyReference(),
-                    HasProperties = member.Value.IsObject(),
-                    HasReference = member.Value.HasReference(),
-                    IsPrimitive = member.Value.IsPrimitive(),
-                    Format = member.Value.Format,
-                    Type = member.Value.Type,
-                    Required = openApiSchema.IsRequired(x => x == nameInRequired)
-                });
-            }
+            var result = GetSchemaMembers(openApiSchema);
             return result;
         }
-        public static void Traverse(this OpenApiSchema openApiSchema, Action<OpenApiMemberInfo> action)
+        public static void TraverseOnPath(this OpenApiSchema openApiSchema, Action<string, OpenApiSchema> action)
         {
             if (openApiSchema == null)
             {
@@ -1909,104 +1866,176 @@ namespace OpenApiExtended
             {
                 throw new ArgumentNullException(nameof(action));
             }
-            var members = GetMembersInfo(openApiSchema);
+            var members = GetMembers(openApiSchema);
             foreach (var member in members)
             {
-                action(member);
+                var key = string.IsNullOrEmpty(member.Key.Aggregate((a, b) => $"{a}.{b}")) ? "$" : member.Key.Aggregate((a, b) =>
+                    $"{a}.{b}");
+                action(key, member.Value);
             }
         }
         // ---------------------------------------------------------------------------------------------------------------------------------------------------------------
-        public static string ToJsonExample(this OpenApiSchema openApiSchema, Func<OpenApiMemberInfo, object> dataProvider = null)
-        {
-            if (openApiSchema == null)
-            {
-                throw new ArgumentNullException(nameof(openApiSchema));
-            }
-            var objectInArray = true;
-            var result = "";
-            var members = openApiSchema.GetMembersInfo();
-            var groupData = members.GroupBy(x => x.ParentKey).ToList();
-
-            if (members.Count > 0)
-            {
-                var parentType = members.First(x => x.ParentKey == Constants.RootIndicator).ParentType;
-                if (parentType == "object")
+        /*
+                public static IList<OpenApiMemberInfo> GetMembersInfo(this OpenApiSchema openApiSchema)
                 {
-                    result = $"{{ {GetReplacementKey(Constants.RootIndicator)} }}";
-                }
-                if (parentType == "array")
-                {
-                    result = $"[ {GetReplacementKey(Constants.RootIndicator)} ]";
-                }
-            }
-            else
-            {
-                if (openApiSchema.IsPrimitive())
-                {
-                    return "\"defaultSingle\"";
-                }
-                return string.Empty;
-
-            }
-
-            foreach (var member in members)
-            {
-                if (member.Type == "array")
-                {
-                    if (!objectInArray)
+                    if (openApiSchema == null)
                     {
-                        objectInArray = true;
+                        throw new ArgumentNullException(nameof(openApiSchema));
                     }
-                    var data = $"\"{member.Name}\": [ {GetReplacementKey(member.PathKey)} ], {GetReplacementKey(member.ParentKey)}";
-                    result = result.ReplaceFirst(GetReplacementKey(member.ParentKey), data);
-                }
+                    var result = new List<OpenApiMemberInfo>();
+                    var members = GetMembers(openApiSchema, true);
+                    var parentType = string.Empty;
 
-                if (member.Type == "object")
-                {
-                    if (!objectInArray)
+                    foreach (var member in members)
                     {
-                        objectInArray = true;
-                    }
-                    var refData = member.HasEmptyReference ? "" : GetReplacementKey(member.PathKey);
-                    var data = $"\"{member.Name}\": {{ {refData} }}, {GetReplacementKey(member.ParentKey)}";
-                    result = result.ReplaceFirst(GetReplacementKey(member.ParentKey), data);
-                }
-
-                if (member.Type != "array" && member.Type != "object")
-                {
-                    if (member.ParentType == "array" && member.IsArrayItem)
-                    {
-                        result = result.ReplaceFirst(GetReplacementKey(member.ParentKey), "\"defaultArray\"");
-                    }
-
-                    if (member.ParentType == "array" && !member.IsArrayItem)
-                    {
-                        if (objectInArray)
+                        var count = member.Key.Count;
+                        if (count == 0)
                         {
-                            result = result.ReplaceFirst(GetReplacementKey(member.ParentKey), $"{{ {GetReplacementKey(member.ParentKey)} }}");
-                            objectInArray = false;
+                            if (member.Value.Type == "object") parentType = "object";
+                            if (member.Value.Type == "array") parentType = "array";
+                            continue;
+                        }
+                        var name = member.Key.Last();
+                        var nameInRequired = Constants.ArrayItemRegex.IsMatch(name) ? Constants.ArrayItemRegex.Match(name).Groups[1].Value : name;
+                        var parents = member.Key.SkipLast(1).ToArray();
+
+                        result.Add(new OpenApiMemberInfo
+                        {
+                            Path = member.Key.ToArray(),
+                            Name = name,
+                            Parents = parents,
+                            Value = member.Value,
+                            ParentType = parents.Length == 0
+                                    ? parentType
+                                    : result.Find(x => x.Path.Aggregate((a, b) => $"{a}.{b}") == parents.Aggregate((a, b) => $"{a}.{b}")).Type,
+                            HasItems = member.Value.IsArray(),
+                            HasEmptyReference = member.Value.HasEmptyReference(),
+                            HasProperties = member.Value.IsObject(),
+                            HasReference = member.Value.HasReference(),
+                            IsPrimitive = member.Value.IsPrimitive(),
+                            Format = member.Value.Format,
+                            Type = member.Value.Type,
+                            Required = openApiSchema.IsRequired(x => x == nameInRequired)
+                        });
+                    }
+                    return result;
+                }
+                public static void Traverse(this OpenApiSchema openApiSchema, Action<OpenApiMemberInfo> action)
+                {
+                    if (openApiSchema == null)
+                    {
+                        throw new ArgumentNullException(nameof(openApiSchema));
+                    }
+                    if (action == null)
+                    {
+                        throw new ArgumentNullException(nameof(action));
+                    }
+                    var members = GetMembersInfo(openApiSchema);
+                    foreach (var member in members)
+                    {
+                        action(member);
+                    }
+                }
+                // ---------------------------------------------------------------------------------------------------------------------------------------------------------------
+                public static string ToJsonExample(this OpenApiSchema openApiSchema, Func<OpenApiMemberInfo, object> dataProvider = null)
+                {
+                    if (openApiSchema == null)
+                    {
+                        throw new ArgumentNullException(nameof(openApiSchema));
+                    }
+                    Regex regex = new("@@.+?@@", RegexOptions.Compiled);
+                    var objectInArray = true;
+                    var result = "";
+                    var members = openApiSchema.GetMembersInfo();
+                    var groupData = members.GroupBy(x => x.ParentKey).ToList();
+
+                    if (members.Count > 0)
+                    {
+                        var parentType = members.First(x => x.ParentKey == Constants.RootIndicator).ParentType;
+                        if (parentType == "object")
+                        {
+                            result = $"{{ {GetReplacementKey(Constants.RootIndicator)} }}";
+                        }
+                        if (parentType == "array")
+                        {
+                            result = $"[ {GetReplacementKey(Constants.RootIndicator)} ]";
+                        }
+                    }
+                    else
+                    {
+                        if (openApiSchema.IsPrimitive())
+                        {
+                            return "\"defaultSingle\"";
+                        }
+                        return string.Empty;
+
+                    }
+
+                    foreach (var member in members)
+                    {
+                        if (member.Type == "array")
+                        {
+                            objectInArray = true;
+                            var data = "";
+                            data = $"\"{member.Name}\": [ {GetReplacementKey(member.PathKey)} ], {GetReplacementKey(member.ParentKey)}";
+
+                            result = result.ReplaceFirst(GetReplacementKey(member.ParentKey), data);
                         }
 
-                        var parentGroup = groupData.Find(x => x.Key == member.ParentKey);
-                        var parentGroupData = parentGroup.Select(x => x.PathKey).ToList();
-                        var parentGroupCount = parentGroupData.Count;
-                        var isLastItem = parentGroupData.FindIndex(x => x == member.PathKey) == parentGroupCount - 1;
-                        var reqKey = isLastItem ? "" : GetReplacementKey(member.ParentKey);
+                        if (member.Type == "object")
+                        {
+                            objectInArray = true;
 
-                        result = result.ReplaceFirst(GetReplacementKey(member.ParentKey), $"\"{member.Name}\": \"default\", {reqKey}");
-                    }
-                    if (member.ParentType == "object")
-                    {
-                        result = result.ReplaceFirst(GetReplacementKey(member.ParentKey), $"\"{member.Name}\": \"default\", {GetReplacementKey(member.ParentKey)}");
-                    }
-                }
-            }
-            result = Constants.JsonExampleRegex.Replace(result, string.Empty);
-            result = result.ToFormattedJson();
-            return result;
+                            if (member.ParentType == "array" && !member.IsArrayItem)
+                            {
+                                result = result.ReplaceFirst(GetReplacementKey(member.ParentKey), $"{{ {GetReplacementKey(member.ParentKey)} }}");
+                            }
+                            else
+                            {
+                                var refData = member.HasEmptyReference ? "" : GetReplacementKey(member.PathKey);
+                                var data = $"\"{member.Name}\": {{ {refData} }}, {GetReplacementKey(member.ParentKey)}";
+                                result = result.ReplaceFirst(GetReplacementKey(member.ParentKey), data);
+                            }
 
-            string GetReplacementKey(string data) => $"{Constants.JsonExampleIndicator}{data}{Constants.JsonExampleIndicator}";
-        }
+
+
+                        }
+
+                        if (member.Type != "array" && member.Type != "object")
+                        {
+                            if (member.ParentType == "array" && member.IsArrayItem)
+                            {
+                                result = result.ReplaceFirst(GetReplacementKey(member.ParentKey), "\"defaultArray\"");
+                            }
+
+                            if (member.ParentType == "array" && !member.IsArrayItem)
+                            {
+                                if (objectInArray)
+                                {
+                                    result = result.ReplaceFirst(GetReplacementKey(member.ParentKey), $"{{ {GetReplacementKey(member.ParentKey)} }}");
+                                    objectInArray = false;
+                                }
+
+                                var parentGroup = groupData.Find(x => x.Key == member.ParentKey);
+                                var parentGroupData = parentGroup.Select(x => x.PathKey).ToList();
+                                var parentGroupCount = parentGroupData.Count;
+                                var isLastItem = parentGroupData.FindIndex(x => x == member.PathKey) == parentGroupCount - 1;
+                                var reqKey = isLastItem ? "" : GetReplacementKey(member.ParentKey);
+
+                                result = result.ReplaceFirst(GetReplacementKey(member.ParentKey), $"\"{member.Name}\": \"default\", {reqKey}");
+                            }
+                            if (member.ParentType == "object")
+                            {
+                                result = result.ReplaceFirst(GetReplacementKey(member.ParentKey), $"\"{member.Name}\": \"default\", {GetReplacementKey(member.ParentKey)}");
+                            }
+                        }
+                    }
+                    result = regex.Replace(result, string.Empty);
+                    result = result.ToFormattedJson();
+                    return result;
+
+                    string GetReplacementKey(string data) => $"{Constants.JsonExampleIndicator}{data}{Constants.JsonExampleIndicator}";
+                }*/
 
     }
 }
