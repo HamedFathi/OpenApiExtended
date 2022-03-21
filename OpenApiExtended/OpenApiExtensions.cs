@@ -1954,7 +1954,8 @@ namespace OpenApiExtended
             {
                 if (openApiSchema.IsPrimitive())
                 {
-                    return "\"defaultSingle\"";
+                    var value = dataProvider?.Invoke(null).ToString() ?? openApiSchema.GetOpenApiSchemaDefaultValue().ToString();
+                    return value;
                 }
                 return string.Empty;
             }
@@ -1999,7 +2000,8 @@ namespace OpenApiExtended
                     {
                         if (member.ParentType == "array" && member.IsArrayItem)
                         {
-                            result = result.ReplaceFirst(GetReplacementKey(member.ParentKey), "\"defaultArray\"");
+                            var value = dataProvider?.Invoke(member).ToString() ?? member.Value.GetOpenApiSchemaDefaultValue().ToString();
+                            result = result.ReplaceFirst(GetReplacementKey(member.ParentKey), value);
                         }
 
                         if (member.ParentType == "array" && !member.IsArrayItem)
@@ -2010,25 +2012,113 @@ namespace OpenApiExtended
                             var isLastItem = parentGroupData.FindIndex(x => x == member.PathKey) == parentGroupCount - 1;
                             var reqKey = isLastItem ? "" : GetReplacementKey(member.ParentKey);
 
-                            result = result.ReplaceFirst(GetReplacementKey(member.ParentKey), $"\"{member.Name}\": \"default\", {reqKey}");
+                            var value = dataProvider?.Invoke(member).ToString() ?? member.Value.GetOpenApiSchemaDefaultValue().ToString();
+                            result = result.ReplaceFirst(GetReplacementKey(member.ParentKey), $"\"{member.Name}\": {value}, {reqKey}");
                         }
                         if (member.ParentType == "object")
                         {
-                            result = result.ReplaceFirst(GetReplacementKey(member.ParentKey), $"\"{member.Name}\": \"default\", {GetReplacementKey(member.ParentKey)}");
+                            var value = dataProvider?.Invoke(member).ToString() ?? member.Value.GetOpenApiSchemaDefaultValue().ToString();
+                            result = result.ReplaceFirst(GetReplacementKey(member.ParentKey), $"\"{member.Name}\": {value}, {GetReplacementKey(member.ParentKey)}");
                         }
                     }
                 }
-
                 counter++;
             }
-
             result = regex.Replace(result, string.Empty);
             result = result.ToFormattedJson();
             return result;
 
             string GetReplacementKey(string data) => $"___{data}___";
         }
+        public static OpenApiValueType GetOpenApiValueType(string type, string format)
+        {
+            if (string.IsNullOrEmpty(type))
+            {
+                throw new ArgumentNullException(nameof(type));
+            }
+            if (!string.IsNullOrEmpty(format))
+            {
+                if (format.ToLower() == "int32") return OpenApiValueType.Int32;
+                if (format.ToLower() == "int64") return OpenApiValueType.Int64;
+                if (format.ToLower() == "float") return OpenApiValueType.Float;
+                if (format.ToLower() == "double") return OpenApiValueType.Double;
+                if (format.ToLower() == "date") return OpenApiValueType.Date;
+                if (format.ToLower() == "date-time") return OpenApiValueType.DateTime;
+                if (format.ToLower() == "password") return OpenApiValueType.Password;
+                if (format.ToLower() == "byte") return OpenApiValueType.Byte;
+                if (format.ToLower() == "binary") return OpenApiValueType.Binary;
+                if (format.ToLower() == "email") return OpenApiValueType.Email;
+                if (format.ToLower() == "uuid") return OpenApiValueType.Uuid;
+                if (format.ToLower() == "uri") return OpenApiValueType.Uri;
+                if (format.ToLower() == "hostname") return OpenApiValueType.HostName;
+                if (format.ToLower() == "ipv4") return OpenApiValueType.IPv4;
+                if (format.ToLower() == "ipv6") return OpenApiValueType.IPv6;
+
+                return OpenApiValueType.Unknown;
+            }
+            if (type.ToLower() == "number") return OpenApiValueType.Number;
+            if (type.ToLower() == "integer") return OpenApiValueType.Integer;
+            if (type.ToLower() == "string") return OpenApiValueType.String;
+            if (type.ToLower() == "boolean") return OpenApiValueType.Boolean;
+            if (type.ToLower() == "null") return OpenApiValueType.Null;
+            if (type.ToLower() == "array") return OpenApiValueType.Array;
+            if (type.ToLower() == "object") return OpenApiValueType.Object;
+
+            return OpenApiValueType.Unknown;
+
+        }
+        private static object GetOpenApiSchemaDefaultValue(this OpenApiSchema openApiSchema)
+        {
+            if (openApiSchema.IsPrimitive())
+            {
+                var info = GetOpenApiValueType(openApiSchema.Type, openApiSchema.Format);
+                switch (info)
+                {
+                    case OpenApiValueType.Boolean:
+                        return "true";
+                    case OpenApiValueType.Integer:
+                        return 0;
+                    case OpenApiValueType.Int32:
+                        return 0;
+                    case OpenApiValueType.Int64:
+                        return 0;
+                    case OpenApiValueType.Number:
+                        return 1.0;
+                    case OpenApiValueType.Float:
+                        return 1.0;
+                    case OpenApiValueType.Double:
+                        return 1.0;
+                    case OpenApiValueType.String:
+                        return "\"string\"";
+                    case OpenApiValueType.Date:
+                        return $"\"{DateTime.Now.ToString("yyyy -MM-dd")}\"";
+                    case OpenApiValueType.DateTime:
+                        return $"\"{DateTime.Now.ToString("yyyy-MM-ddTHH:mm:ssZ")}\"";
+                    case OpenApiValueType.Password:
+                        return "\"P@ssW0rd\"";
+                    case OpenApiValueType.Byte:
+                        return "\"ZGVmYXVsdA==\"";
+                    case OpenApiValueType.Email:
+                        return "\"test@example.com\"";
+                    case OpenApiValueType.Uuid:
+                        return $"\"{Guid.NewGuid()}\"";
+                    case OpenApiValueType.Uri:
+                        return "\"https://www.example.com/\"";
+                    case OpenApiValueType.HostName:
+                        return "\"https://www.domain.example.com/\"";
+                    case OpenApiValueType.IPv4:
+                        return "\"127.0.0.1\"";
+                    case OpenApiValueType.IPv6:
+                        return "\"::1\"";
+                    case OpenApiValueType.Null:
+                        return null;
+                    default:
+                        return string.Empty;
+                }
+            }
+            return null;
+            // ---------------------------------------------------------------------------------------------------------------------------------------------------------------
+        }
         // ---------------------------------------------------------------------------------------------------------------------------------------------------------------
     }
 }
-

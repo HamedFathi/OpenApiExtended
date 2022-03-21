@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
+using System.Reflection;
 using System.Text.Json;
 
 namespace OpenApiExtended
@@ -39,7 +40,6 @@ namespace OpenApiExtended
             var result = JsonSerializer.Serialize(parsedJson, new JsonSerializerOptions { WriteIndented = true });
             return result;
         }
-
         internal static IEnumerable<T> SkipLast<T>(this IEnumerable<T> source, int count)
         {
             using var enumerator = source.GetEnumerator();
@@ -54,7 +54,6 @@ namespace OpenApiExtended
                     yield return queue.Dequeue();
             }
         }
-
         internal static string ReplaceFirst(this string text, string search, string replace)
         {
             int pos = text.IndexOf(search, StringComparison.Ordinal);
@@ -74,10 +73,29 @@ namespace OpenApiExtended
             string result = text.Remove(place, search.Length).Insert(place, replace);
             return result;
         }
-
         internal static bool IsString(this object obj)
         {
             return obj is string;
         }
+        internal static T Parse<T>(this Enum @enum, string name, bool ignoreCase = false) where T : Enum
+        {
+            if (@enum is null)
+            {
+                throw new ArgumentNullException(nameof(@enum));
+            }
+
+            return (T)Enum.Parse(typeof(T), name, ignoreCase);
+        }
+        internal static string GetDescription(this Enum @enum, bool replaceNullWithEnumName = false)
+        {
+            return
+                @enum
+                    .GetType()
+                    .GetMember(@enum.ToString())
+                    .FirstOrDefault()
+                    ?.GetCustomAttribute<DescriptionAttribute>()
+                    ?.Description
+                ?? (replaceNullWithEnumName ? null : @enum.ToString());
+        }        
     }
 }
