@@ -1,9 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Text.RegularExpressions;
 using Microsoft.OpenApi.Models;
+// ReSharper disable UnusedMember.Global
 
 namespace OpenApiExtended
 {
@@ -349,7 +348,7 @@ namespace OpenApiExtended
             {
                 throw new ArgumentNullException(nameof(openApiOperations));
             }
-            var requestBody = openApiOperations.Where(x => HasRequestBody(x)).Select(x => x.RequestBody).ToList();
+            var requestBody = openApiOperations.Where(HasRequestBody).Select(x => x.RequestBody).ToList();
             return requestBody;
         }
         // ---------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -594,10 +593,7 @@ namespace OpenApiExtended
             {
                 throw new ArgumentNullException(nameof(openApiRequestBody));
             }
-            if (openApiRequestBody == null)
-            {
-                return null;
-            }
+
             var apiMediaTypes = openApiRequestBody.Content
                 .Select(x => x.Value)
                 .ToList()
@@ -612,11 +608,6 @@ namespace OpenApiExtended
                 throw new ArgumentNullException(nameof(openApiRequestBody));
             }
 
-            if (openApiRequestBody == null)
-            {
-                count = 0;
-                return null;
-            }
             var apiMediaTypes = openApiRequestBody.Content
                 .Select(x => x.Value).ToList();
 
@@ -630,10 +621,7 @@ namespace OpenApiExtended
             {
                 throw new ArgumentNullException(nameof(openApiRequestBody));
             }
-            if (openApiRequestBody == null)
-            {
-                return null;
-            }
+
             var apiMediaTypes = openApiRequestBody.Content
                 .Where(x => predicate(x.Key))
                 .Select(x => x.Value)
@@ -648,11 +636,7 @@ namespace OpenApiExtended
             {
                 throw new ArgumentNullException(nameof(openApiRequestBody));
             }
-            if (openApiRequestBody == null)
-            {
-                count = 0;
-                return null;
-            }
+
             var apiMediaTypes = openApiRequestBody.Content
                 .Where(x => predicate(x.Key))
                 .Select(x => x.Value).ToList();
@@ -673,7 +657,7 @@ namespace OpenApiExtended
                     .ToList()
                 ;
 
-            var schemas = apiMediaTypes?.Select(x => x.Schema).ToList();
+            var schemas = apiMediaTypes.Select(x => x.Schema).ToList();
             return schemas;
         }
         public static IList<OpenApiSchema> GetRequestBodySchema(this OpenApiRequestBody openApiRequestBody, Func<OpenApiMimeType, bool> predicate, out int count)
@@ -682,11 +666,7 @@ namespace OpenApiExtended
             {
                 throw new ArgumentNullException(nameof(openApiRequestBody));
             }
-            if (openApiRequestBody == null)
-            {
-                count = 0;
-                return null;
-            }
+
             var apiMediaTypes = openApiRequestBody.Content
                 .Where(x => predicate((OpenApiMimeType)ConvertToOpenApiMimeType<OpenApiMimeType>(x.Key)))
                 .Select(x => x.Value).ToList();
@@ -701,10 +681,7 @@ namespace OpenApiExtended
             {
                 throw new ArgumentNullException(nameof(openApiRequestBody));
             }
-            if (openApiRequestBody == null)
-            {
-                return null;
-            }
+
             var apiMediaTypes = openApiRequestBody.Content
                 .Select(x => x.Value)
                 .ToList()
@@ -718,11 +695,6 @@ namespace OpenApiExtended
                 throw new ArgumentNullException(nameof(openApiRequestBody));
             }
 
-            if (openApiRequestBody == null)
-            {
-                count = 0;
-                return null;
-            }
             var apiMediaTypes = openApiRequestBody.Content
                 .Select(x => x.Value).ToList();
             count = apiMediaTypes.Count;
@@ -734,10 +706,7 @@ namespace OpenApiExtended
             {
                 throw new ArgumentNullException(nameof(openApiRequestBody));
             }
-            if (openApiRequestBody == null)
-            {
-                return null;
-            }
+
             var apiMediaTypes = openApiRequestBody.Content
                 .Where(x => predicate(x.Key))
                 .Select(x => x.Value)
@@ -751,11 +720,7 @@ namespace OpenApiExtended
             {
                 throw new ArgumentNullException(nameof(openApiRequestBody));
             }
-            if (openApiRequestBody == null)
-            {
-                count = 0;
-                return null;
-            }
+
             var apiMediaTypes = openApiRequestBody.Content
                 .Where(x => predicate(x.Key))
                 .Select(x => x.Value).ToList();
@@ -781,11 +746,7 @@ namespace OpenApiExtended
             {
                 throw new ArgumentNullException(nameof(openApiRequestBody));
             }
-            if (openApiRequestBody == null)
-            {
-                count = 0;
-                return null;
-            }
+
             var apiMediaTypes = openApiRequestBody.Content
                 .Where(x => predicate((OpenApiMimeType)ConvertToOpenApiMimeType<OpenApiMimeType>(x.Key)))
                 .Select(x => x.Value).ToList();
@@ -914,10 +875,7 @@ namespace OpenApiExtended
             {
                 throw new ArgumentNullException(nameof(openApiRequestBody));
             }
-            if (openApiRequestBody == null)
-            {
-                return null;
-            }
+
             var apiMediaTypes = openApiRequestBody.Content
                 .Select(x => x.Value)
                 .ToList()
@@ -931,11 +889,7 @@ namespace OpenApiExtended
             {
                 throw new ArgumentNullException(nameof(openApiRequestBody));
             }
-            if (openApiRequestBody == null)
-            {
-                count = 0;
-                return null;
-            }
+
             var apiMediaTypes = openApiRequestBody.Content
                 .Select(x => x.Value)
                 .ToList()
@@ -950,12 +904,12 @@ namespace OpenApiExtended
             {
                 throw new ArgumentNullException(nameof(openApiRequestBody));
             }
-            var apiMediaTypes = openApiRequestBody?.Content
+            var apiMediaTypes = openApiRequestBody.Content
                     .Where(x => predicate((OpenApiMimeType)ConvertToOpenApiMimeType<OpenApiMimeType>(x.Key)))
                     .Select(x => x.Value)
                     .ToList()
                 ;
-            var refs = apiMediaTypes?.Select(x => x.Schema.Reference).ToList();
+            var refs = apiMediaTypes.Select(x => x.Schema.Reference).ToList();
             return refs;
         }
         public static IList<OpenApiReference> GetRequestBodySchemaReference(this OpenApiRequestBody openApiRequestBody, Func<OpenApiMimeType, bool> predicate, out int count)
@@ -964,13 +918,13 @@ namespace OpenApiExtended
             {
                 throw new ArgumentNullException(nameof(openApiRequestBody));
             }
-            var apiMediaTypes = openApiRequestBody?.Content
+            var apiMediaTypes = openApiRequestBody.Content
                     .Where(x => predicate((OpenApiMimeType)ConvertToOpenApiMimeType<OpenApiMimeType>(x.Key)))
                     .Select(x => x.Value)
                     .ToList()
                 ;
-            var refs = apiMediaTypes?.Select(x => x.Schema.Reference).ToList();
-            count = refs?.Count ?? 0;
+            var refs = apiMediaTypes.Select(x => x.Schema.Reference).ToList();
+            count = refs.Count;
             return refs;
         }
         public static IList<OpenApiReference> GetRequestBodySchemaReference(this OpenApiRequestBody openApiRequestBody, Func<string, bool> predicate)
@@ -979,12 +933,12 @@ namespace OpenApiExtended
             {
                 throw new ArgumentNullException(nameof(openApiRequestBody));
             }
-            var apiMediaTypes = openApiRequestBody?.Content
+            var apiMediaTypes = openApiRequestBody.Content
                     .Where(x => predicate(x.Key))
                     .Select(x => x.Value)
                     .ToList()
                 ;
-            var refs = apiMediaTypes?.Select(x => x.Schema.Reference).ToList();
+            var refs = apiMediaTypes.Select(x => x.Schema.Reference).ToList();
             return refs;
         }
         public static IList<OpenApiReference> GetRequestBodySchemaReference(this OpenApiRequestBody openApiRequestBody, Func<string, bool> predicate, out int count)
@@ -993,13 +947,13 @@ namespace OpenApiExtended
             {
                 throw new ArgumentNullException(nameof(openApiRequestBody));
             }
-            var apiMediaTypes = openApiRequestBody?.Content
+            var apiMediaTypes = openApiRequestBody.Content
                     .Where(x => predicate(x.Key))
                     .Select(x => x.Value)
                     .ToList()
                 ;
-            var refs = apiMediaTypes?.Select(x => x.Schema.Reference).ToList();
-            count = refs?.Count ?? 0;
+            var refs = apiMediaTypes.Select(x => x.Schema.Reference).ToList();
+            count = refs.Count;
             return refs;
         }
         // ---------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -1595,7 +1549,7 @@ namespace OpenApiExtended
             {
                 throw new ArgumentNullException(nameof(separator));
             }
-            var parts = key.Split(new string[] { separator }, StringSplitOptions.None);
+            var parts = key.Split(new[] { separator }, StringSplitOptions.None);
             var count = parts.Length;
             OpenApiPathItem path = null;
             OpenApiOperation operation = null;
@@ -1606,11 +1560,11 @@ namespace OpenApiExtended
             }
             if (count >= 2 && path != null)
             {
-                operation = path.Operations.Where(x => x.Key.ToString().ToLower() == parts[1].ToLower()).FirstOrDefault().Value;
+                operation = path.Operations.FirstOrDefault(x => x.Key.ToString().ToLower() == parts[1].ToLower()).Value;
             }
             if (count == 3 && path != null && operation != null)
             {
-                response = operation.Responses.Where(x => x.Key == parts[2]).FirstOrDefault().Value;
+                response = operation.Responses.FirstOrDefault(x => x.Key == parts[2]).Value;
             }
             return count == 1 ? path : (count == 2 ? operation : (count == 3 ? response : null));
         }
@@ -1628,7 +1582,7 @@ namespace OpenApiExtended
             {
                 throw new ArgumentNullException(nameof(separator));
             }
-            var parts = key.Split(new string[] { separator }, StringSplitOptions.None);
+            var parts = key.Split(new[] { separator }, StringSplitOptions.None);
             var count = parts.Length;
             OpenApiPathItem path = null;
             OpenApiOperation operation = null;
@@ -1644,7 +1598,7 @@ namespace OpenApiExtended
             }
             if (count >= 2 && path != null)
             {
-                operation = path.Operations.Where(x => x.Key.ToString().ToLower() == parts[1].ToLower()).FirstOrDefault().Value;
+                operation = path.Operations.FirstOrDefault(x => x.Key.ToString().ToLower() == parts[1].ToLower()).Value;
                 if (operation != null)
                 {
                     openApiKeyType = OpenApiKeyType.Operation;
@@ -1653,7 +1607,7 @@ namespace OpenApiExtended
             if (count == 3 && path != null && operation != null)
             {
 
-                response = operation.Responses.Where(x => x.Key == parts[2]).FirstOrDefault().Value;
+                response = operation.Responses.FirstOrDefault(x => x.Key == parts[2]).Value;
                 if (response != null)
                 {
                     openApiKeyType = OpenApiKeyType.Response;
@@ -1706,7 +1660,7 @@ namespace OpenApiExtended
                 throw new ArgumentNullException(nameof(openApiDocument));
             }
             var schemas = openApiDocument.Components.Schemas.Select(x => x.Value);
-            var result = schemas.Where(x => schema(x)).ToList();
+            var result = schemas.Where(schema).ToList();
             return result;
         }
         public static IList<OpenApiSchema> GetComponentsSchema(this OpenApiDocument openApiDocument, Func<OpenApiSchema, bool> schema, out int count)
@@ -1716,7 +1670,7 @@ namespace OpenApiExtended
                 throw new ArgumentNullException(nameof(openApiDocument));
             }
             var schemas = openApiDocument.Components.Schemas.Select(x => x.Value);
-            var result = schemas.Where(x => schema(x)).ToList();
+            var result = schemas.Where(schema).ToList();
             count = result.Count;
             return result;
         }
@@ -1833,7 +1787,7 @@ namespace OpenApiExtended
             {
                 throw new ArgumentNullException(nameof(openApiSchema));
             }
-            return openApiSchema.Required.Where(x => predicate(x)).Select(x => x);
+            return openApiSchema.Required.Where(predicate).Select(x => x);
         }
         public static bool IsRequired(this OpenApiSchema openApiSchema, Func<string, bool> predicate)
         {
@@ -1841,7 +1795,7 @@ namespace OpenApiExtended
             {
                 throw new ArgumentNullException(nameof(openApiSchema));
             }
-            return openApiSchema.Required.Any(x => predicate(x));
+            return openApiSchema.Required.Any(predicate);
         }
         // ---------------------------------------------------------------------------------------------------------------------------------------------------------------
         private static IDictionary<IList<string>, OpenApiSchema> GetSchemaMembers(this OpenApiSchema openApiSchema, IList<string> path = null, string parentType = null, IDictionary<IList<string>, OpenApiSchema> list = null, bool includeMainSchema = false)
@@ -1850,14 +1804,9 @@ namespace OpenApiExtended
             {
                 throw new ArgumentNullException(nameof(openApiSchema));
             }
-            if (path == null)
-            {
-                path = new List<string>();
-            }
-            if (list == null)
-            {
-                list = new Dictionary<IList<string>, OpenApiSchema>();
-            }
+            path ??= new List<string>();
+            list ??= new Dictionary<IList<string>, OpenApiSchema>();
+
             if (path.Count == 0 && parentType == null && list.Count == 0 && includeMainSchema)
             {
                 var newPath = new List<string>();
@@ -1906,13 +1855,13 @@ namespace OpenApiExtended
             }
             return GetSchemaMembers(openApiSchema, includeMainSchema: includeMainSchema);
         }
-        public static IList<OpenApiMembersInfo> GetMembersInfo(this OpenApiSchema openApiSchema)
+        public static IList<OpenApiMemberInfo> GetMembersInfo(this OpenApiSchema openApiSchema)
         {
             if (openApiSchema == null)
             {
                 throw new ArgumentNullException(nameof(openApiSchema));
             }
-            var result = new List<OpenApiMembersInfo>();
+            var result = new List<OpenApiMemberInfo>();
             var members = GetMembers(openApiSchema, true);
             var parentType = string.Empty;
 
@@ -1929,7 +1878,7 @@ namespace OpenApiExtended
                 var nameInRequired = Constants.ArrayItemRegex.IsMatch(name) ? Constants.ArrayItemRegex.Match(name).Groups[1].Value : name;
                 var parents = member.Key.SkipLast(1).ToArray();
 
-                result.Add(new OpenApiMembersInfo
+                result.Add(new OpenApiMemberInfo
                 {
                     Path = member.Key.ToArray(),
                     Name = name,
@@ -1950,7 +1899,7 @@ namespace OpenApiExtended
             }
             return result;
         }
-        public static void Traverse(this OpenApiSchema openApiSchema, Action<OpenApiMembersInfo> action)
+        public static void Traverse(this OpenApiSchema openApiSchema, Action<OpenApiMemberInfo> action)
         {
             if (openApiSchema == null)
             {
@@ -1967,82 +1916,96 @@ namespace OpenApiExtended
             }
         }
         // ---------------------------------------------------------------------------------------------------------------------------------------------------------------
-        public static string ToJsonExample(this OpenApiSchema openApiSchema, Func<OpenApiMembersInfo, object> dataProvider = null)
+        public static string ToJsonExample(this OpenApiSchema openApiSchema, Func<OpenApiMemberInfo, object> dataProvider = null)
         {
             if (openApiSchema == null)
             {
                 throw new ArgumentNullException(nameof(openApiSchema));
             }
-            var firstTry = true;
             var objectInArray = true;
-            var replacementKey = "@@@REPLACEMENT@@@";
             var result = "";
             var members = openApiSchema.GetMembersInfo();
+            var groupData = members.GroupBy(x => x.ParentKey).ToList();
+
+            if (members.Count > 0)
+            {
+                var parentType = members.First(x => x.ParentKey == Constants.RootIndicator).ParentType;
+                if (parentType == "object")
+                {
+                    result = $"{{ {GetReplacementKey(Constants.RootIndicator)} }}";
+                }
+                if (parentType == "array")
+                {
+                    result = $"[ {GetReplacementKey(Constants.RootIndicator)} ]";
+                }
+            }
+            else
+            {
+                if (openApiSchema.IsPrimitive())
+                {
+                    return "\"defaultSingle\"";
+                }
+                return string.Empty;
+
+            }
+
             foreach (var member in members)
             {
-                if (firstTry)
-                {
-                    if (member.ParentType == "object")
-                    {
-                        result = $"{{ {replacementKey} }}";
-                    }
-                    if (member.ParentType == "array")
-                    {
-                        result = $"[ {replacementKey} ]";
-                    }
-                    firstTry = false;
-                }
                 if (member.Type == "array")
                 {
                     if (!objectInArray)
                     {
-                        result = result.ReplaceFirst(replacementKey, string.Empty);
                         objectInArray = true;
                     }
-                    var data = $"\"{member.Name}\": [ {replacementKey} ], {replacementKey}";
-                    result = result.Replace(replacementKey, data);
+                    var data = $"\"{member.Name}\": [ {GetReplacementKey(member.PathKey)} ], {GetReplacementKey(member.ParentKey)}";
+                    result = result.ReplaceFirst(GetReplacementKey(member.ParentKey), data);
                 }
+
                 if (member.Type == "object")
                 {
                     if (!objectInArray)
                     {
-                        result = result.ReplaceFirst(replacementKey, string.Empty);
                         objectInArray = true;
                     }
-                    var refData = member.HasEmptyReference ? "" : replacementKey;
-                    var data = $"\"{member.Name}\": {{ {refData} }}, {replacementKey}";
-                    result = result.Replace(replacementKey, data);
+                    var refData = member.HasEmptyReference ? "" : GetReplacementKey(member.PathKey);
+                    var data = $"\"{member.Name}\": {{ {refData} }}, {GetReplacementKey(member.ParentKey)}";
+                    result = result.ReplaceFirst(GetReplacementKey(member.ParentKey), data);
                 }
+
                 if (member.Type != "array" && member.Type != "object")
                 {
-                    if (!objectInArray && member.IsInRoot)
-                    {
-                        result = result.ReplaceFirst(replacementKey, string.Empty);
-                        objectInArray = true;
-                    }
                     if (member.ParentType == "array" && member.IsArrayItem)
                     {
-                        result = result.ReplaceFirst(replacementKey, "\"default\"");
+                        result = result.ReplaceFirst(GetReplacementKey(member.ParentKey), "\"defaultArray\"");
                     }
+
                     if (member.ParentType == "array" && !member.IsArrayItem)
                     {
-
                         if (objectInArray)
                         {
-                            result = result.ReplaceFirst(replacementKey, $"{{ {replacementKey} }}");
+                            result = result.ReplaceFirst(GetReplacementKey(member.ParentKey), $"{{ {GetReplacementKey(member.ParentKey)} }}");
                             objectInArray = false;
                         }
-                        result = result.ReplaceFirst(replacementKey, $"\"{member.Name}\": \"default\", {replacementKey}");
+
+                        var parentGroup = groupData.Find(x => x.Key == member.ParentKey);
+                        var parentGroupData = parentGroup.Select(x => x.PathKey).ToList();
+                        var parentGroupCount = parentGroupData.Count;
+                        var isLastItem = parentGroupData.FindIndex(x => x == member.PathKey) == parentGroupCount - 1;
+                        var reqKey = isLastItem ? "" : GetReplacementKey(member.ParentKey);
+
+                        result = result.ReplaceFirst(GetReplacementKey(member.ParentKey), $"\"{member.Name}\": \"default\", {reqKey}");
                     }
                     if (member.ParentType == "object")
                     {
-                        result = result.ReplaceFirst(replacementKey, $"\"{member.Name}\": \"default\", {replacementKey}");
+                        result = result.ReplaceFirst(GetReplacementKey(member.ParentKey), $"\"{member.Name}\": \"default\", {GetReplacementKey(member.ParentKey)}");
                     }
                 }
             }
-            result = result.Replace(replacementKey, string.Empty);
+            result = Constants.JsonExampleRegex.Replace(result, string.Empty);
             result = result.ToFormattedJson();
             return result;
+
+            string GetReplacementKey(string data) => $"{Constants.JsonExampleIndicator}{data}{Constants.JsonExampleIndicator}";
         }
 
     }

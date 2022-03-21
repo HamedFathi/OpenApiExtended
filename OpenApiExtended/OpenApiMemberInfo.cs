@@ -1,13 +1,15 @@
-﻿using Microsoft.OpenApi.Models;
-using System.Text.RegularExpressions;
+﻿using System.Linq;
+using Microsoft.OpenApi.Models;
 
 namespace OpenApiExtended
 {
-    public class OpenApiMembersInfo
+    public class OpenApiMemberInfo
     {
         public string Type { get; set; }
         public string Format { get; set; }
         public string[] Path { get; set; }
+        public string PathKey => Constants.RootIndicator + "." + Path.Aggregate((a, b) => a + "." + b);
+        public string ParentKey => Parents.Length == 0 ? Constants.RootIndicator : Constants.RootIndicator + "." + Parents.Aggregate((a, b) => a + "." + b);
         public string ParentType { get; set; }
         public bool HasReference { get; set; }
         public bool HasEmptyReference { get; set; }

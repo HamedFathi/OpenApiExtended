@@ -38,7 +38,7 @@ namespace OpenApiExtended
 
         internal static IEnumerable<T> SkipLast<T>(this IEnumerable<T> source, int count)
         {
-            var enumerator = source.GetEnumerator();
+            using var enumerator = source.GetEnumerator();
             var queue = new Queue<T>(count + 1);
 
             while (true)
@@ -53,7 +53,7 @@ namespace OpenApiExtended
 
         internal static string ReplaceFirst(this string text, string search, string replace)
         {
-            int pos = text.IndexOf(search);
+            int pos = text.IndexOf(search, StringComparison.Ordinal);
             if (pos < 0)
             {
                 return text;
@@ -62,13 +62,18 @@ namespace OpenApiExtended
         }
         internal static string ReplaceLast(string text, string search, string replace)
         {
-            int place = text.LastIndexOf(search);
+            int place = text.LastIndexOf(search, StringComparison.Ordinal);
 
             if (place == -1)
                 return text;
 
             string result = text.Remove(place, search.Length).Insert(place, replace);
             return result;
+        }
+
+        internal static bool IsString(this object obj)
+        {
+            return obj is string;
         }
     }
 }
