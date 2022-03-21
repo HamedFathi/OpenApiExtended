@@ -1847,7 +1847,7 @@ namespace OpenApiExtended
             }
             return list;
         }
-        public static IDictionary<IList<string>, OpenApiSchema> GetMembers(this OpenApiSchema openApiSchema, bool includeMainSchema = false)
+        public static IDictionary<IList<string>, OpenApiSchema> GetMembers(this OpenApiSchema openApiSchema)
         {
             if (openApiSchema == null)
             {
@@ -1869,11 +1869,34 @@ namespace OpenApiExtended
             var members = GetMembers(openApiSchema);
             foreach (var member in members)
             {
-                var key = string.IsNullOrEmpty(member.Key.Aggregate((a, b) => $"{a}.{b}")) ? "$" : member.Key.Aggregate((a, b) =>
-                    $"{a}.{b}");
+                var key = string.IsNullOrEmpty(member.Key.Aggregate((a, b) => $"{a}.{b}")) ? Constants.RootIndicator : Constants.RootIndicator + "." + member.Key.Aggregate((a, b) =>
+                      $"{a}.{b}");
                 action(key, member.Value);
             }
         }
+
+        public static IList<OpenApiMemberInfo> GetMembersInfo(this OpenApiSchema openApiSchema)
+        {
+            if (openApiSchema == null)
+            {
+                throw new ArgumentNullException(nameof(openApiSchema));
+            }
+
+            var result = new List<OpenApiMemberInfo>();
+            var members = GetMembers(openApiSchema);
+
+
+
+            return result;
+        }
+
+
+
+
+
+
+
+
         // ---------------------------------------------------------------------------------------------------------------------------------------------------------------
         /*
                 public static IList<OpenApiMemberInfo> GetMembersInfo(this OpenApiSchema openApiSchema)

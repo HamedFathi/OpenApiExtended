@@ -16,6 +16,7 @@ namespace OpenApiExtended
         public bool HasProperties { get; set; }
         public bool IsPrimitive { get; set; }
         public bool IsInRoot => Parents.Length == 0;
+        public bool IsRoot { get; set; }
         public bool IsArrayItem => Constants.ArrayItemRegex.IsMatch(Name);
         public bool HasItems { get; set; }
         public bool Required { get; set; }
