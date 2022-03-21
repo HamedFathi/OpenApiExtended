@@ -1863,7 +1863,7 @@ namespace OpenApiExtended
             var result = GetSchemaMembers(openApiSchema);
             return result;
         }
-        public static void TraverseOnPath(this OpenApiSchema openApiSchema, Action<string, OpenApiSchema> action)
+        public static void TraverseOnPaths(this OpenApiSchema openApiSchema, Action<string, OpenApiSchema> action)
         {
             if (openApiSchema == null)
             {
@@ -1881,58 +1881,59 @@ namespace OpenApiExtended
                 action(key, member.Value);
             }
         }
-
+        public static void TraverseOnMembers(this OpenApiSchema openApiSchema, Action<OpenApiMemberInfo> action)
+        {
+            if (openApiSchema == null)
+            {
+                throw new ArgumentNullException(nameof(openApiSchema));
+            }
+            if (action == null)
+            {
+                throw new ArgumentNullException(nameof(action));
+            }
+            var members = GetMembersInfo(openApiSchema);
+            foreach (var member in members)
+            {
+                action(member);
+            }
+        }
         public static IList<OpenApiMemberInfo> GetMembersInfo(this OpenApiSchema openApiSchema)
         {
             if (openApiSchema == null)
             {
                 throw new ArgumentNullException(nameof(openApiSchema));
             }
-
             var result = new List<OpenApiMemberInfo>();
             var members = GetMembers(openApiSchema);
-
-            var counter = 0;
-
             foreach (var member in members)
             {
                 var name = member.Key.Count == 0 ? null : member.Key.Last();
                 var parents = member.Key.Count == 0 ? null : member.Key.Count == 1 ? Array.Empty<string>() : member.Key.SkipLast(1).ToArray();
-
-                var item = new OpenApiMemberInfo();
-                item.Path = member.Key.Count == 0 ? null : member.Key.ToArray();
-                item.Name = name;
-                item.Parents = parents;
-                item.Value = member.Value;
-                item.ParentType = parents == null ? null : parents.Length == 0
-                    ? members.Values.First().Type
-                    : result.Find(x => x.Path.Aggregate((a, b) => $"{a}.{b}") == parents.Aggregate((a, b) => $"{a}.{b}")).Type;
-                item.IsArray = member.Value.IsArray();
-                item.HasEmptyReference = member.Value.HasEmptyReference();
-                item.IsObject = member.Value.IsObject();
-                item.HasReference = member.Value.HasReference();
-                item.ReferenceId = member.Value.HasReference() ? member.Value.Reference.Id : null;
-                item.IsPrimitive = member.Value.IsPrimitive();
-                item.Format = member.Value.Format;
-                item.Type = member.Value.Type;
-                item.Required = openApiSchema.Required.ToArray();
-                item.IsRequired = openApiSchema.Required.Any(x => x == name);
-                item.IsRoot = member.Key.Count == 0;
+                var item = new OpenApiMemberInfo
+                {
+                    Path = member.Key.Count == 0 ? null : member.Key.ToArray(),
+                    Name = name,
+                    Parents = parents,
+                    Value = member.Value,
+                    ParentType = parents == null ? null : parents.Length == 0
+                        ? members.Values.First().Type
+                        : result.First(x => x.PathKey == x.ParentKey).Type,
+                    IsArray = member.Value.IsArray(),
+                    HasEmptyReference = member.Value.HasEmptyReference(),
+                    IsObject = member.Value.IsObject(),
+                    HasReference = member.Value.HasReference(),
+                    ReferenceId = member.Value.HasReference() ? member.Value.Reference.Id : null,
+                    IsPrimitive = member.Value.IsPrimitive(),
+                    Format = member.Value.Format,
+                    Type = member.Value.Type,
+                    Required = openApiSchema.Required.ToArray(),
+                    IsRequired = openApiSchema.Required.Any(x => x == name),
+                    IsRoot = member.Key.Count == 0
+                };
                 result.Add(item);
-
-                counter++;
             }
-
             return result;
         }
-
-
-
-
-
-
-
-
         // ---------------------------------------------------------------------------------------------------------------------------------------------------------------
         /*
                 public static IList<OpenApiMemberInfo> GetMembersInfo(this OpenApiSchema openApiSchema)
