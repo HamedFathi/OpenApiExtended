@@ -6,6 +6,6 @@ namespace OpenApiExtended
     {
         internal const string RootIndicator = "$";
         internal const string ArrayItemFormatSeparator = ">";
-        internal static readonly Regex ArrayItemRegex = new(@"(.+)\.\.\.\[(.+)\]", RegexOptions.Compiled);
+        internal static readonly Regex ArrayItemRegex = new(@"\[(.+)\]", RegexOptions.Compiled);
     }
 }

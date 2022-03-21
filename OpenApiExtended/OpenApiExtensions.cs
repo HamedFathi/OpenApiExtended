@@ -1892,7 +1892,36 @@ namespace OpenApiExtended
             var result = new List<OpenApiMemberInfo>();
             var members = GetMembers(openApiSchema);
 
+            var counter = 0;
 
+            foreach (var member in members)
+            {
+                var name = member.Key.Count == 0 ? null : member.Key.Last();
+                var parents = member.Key.Count == 0 ? null : member.Key.Count == 1 ? Array.Empty<string>() : member.Key.SkipLast(1).ToArray();
+
+                var item = new OpenApiMemberInfo();
+                item.Path = member.Key.Count == 0 ? null : member.Key.ToArray();
+                item.Name = name;
+                item.Parents = parents;
+                item.Value = member.Value;
+                item.ParentType = parents == null ? null : parents.Length == 0
+                    ? members.Values.First().Type
+                    : result.Find(x => x.Path.Aggregate((a, b) => $"{a}.{b}") == parents.Aggregate((a, b) => $"{a}.{b}")).Type;
+                item.IsArray = member.Value.IsArray();
+                item.HasEmptyReference = member.Value.HasEmptyReference();
+                item.IsObject = member.Value.IsObject();
+                item.HasReference = member.Value.HasReference();
+                item.ReferenceId = member.Value.HasReference() ? member.Value.Reference.Id : null;
+                item.IsPrimitive = member.Value.IsPrimitive();
+                item.Format = member.Value.Format;
+                item.Type = member.Value.Type;
+                item.Required = openApiSchema.Required.ToArray();
+                item.IsRequired = openApiSchema.Required.Any(x => x == name);
+                item.IsRoot = member.Key.Count == 0;
+                result.Add(item);
+
+                counter++;
+            }
 
             return result;
         }
