@@ -8,6 +8,10 @@ namespace OpenApiExtended
 {
     internal static class Helper
     {
+        internal static IEnumerable<T> DistinctBy<T, TKey>(this IEnumerable<T> items, Func<T, TKey> property)
+        {
+            return items.GroupBy(property).Select(x => x.First());
+        }
         internal static IEnumerable<EnumMemberInfo> GetEnumInfo<T>() where T : Enum
         {
             var names = Enum.GetNames(typeof(T));
