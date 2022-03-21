@@ -4,10 +4,8 @@ namespace OpenApiExtended
 {
     internal class Constants
     {
-        internal const string ArrayItemSeparator = "...[";
         internal const string RootIndicator = "$";
-        internal const string JsonExampleIndicator = "@@";
-        internal const string ArrayItemFormatSeparator = ".";
+        internal const string ArrayItemFormatSeparator = ">";
         internal static readonly Regex ArrayItemRegex = new(@"(.+)\.\.\.\[(.+)\]", RegexOptions.Compiled);
     }
 }

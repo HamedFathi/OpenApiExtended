@@ -1811,6 +1811,13 @@ namespace OpenApiExtended
             // Array Type
             if (openApiSchema.IsArray())
             {
+                if (list.Count == 0)
+                {
+                    var objPath = new List<string>();
+                    objPath.AddRange(path);
+                    list.Add(objPath, openApiSchema);
+                }
+
                 var items = openApiSchema.Items;
                 items.GetSchemaMembers(path, "array", list);
             }
@@ -1841,7 +1848,7 @@ namespace OpenApiExtended
                     newPath.AddRange(path);
                     var type = openApiSchema.Type.ToLower();
                     var format = string.IsNullOrEmpty(openApiSchema.Format) ? "" : Constants.ArrayItemFormatSeparator + openApiSchema.Format.ToLower();
-                    newPath.Add($"{path.Last()}{Constants.ArrayItemSeparator}{type}{format}]");
+                    newPath.Add($"[{type}{format}]");
                     list.Add(newPath, openApiSchema);
                 }
             }
@@ -1869,7 +1876,7 @@ namespace OpenApiExtended
             var members = GetMembers(openApiSchema);
             foreach (var member in members)
             {
-                var key = string.IsNullOrEmpty(member.Key.Aggregate((a, b) => $"{a}.{b}")) ? Constants.RootIndicator : Constants.RootIndicator + "." + member.Key.Aggregate((a, b) =>
+                var key = member.Key.Count == 0 ? Constants.RootIndicator : Constants.RootIndicator + "." + member.Key.Aggregate((a, b) =>
                       $"{a}.{b}");
                 action(key, member.Value);
             }
