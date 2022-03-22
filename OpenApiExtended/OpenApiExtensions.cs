@@ -5,7 +5,6 @@ using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
 using Microsoft.OpenApi.Models;
-using OpenApiExtended.Enums;
 
 // ReSharper disable UnusedMember.Global
 
@@ -2272,9 +2271,9 @@ namespace OpenApiExtended
                     case OpenApiValueType.String:
                         return "\"string\"";
                     case OpenApiValueType.Date:
-                        return $"\"{DateTime.Now.ToString("yyyy -MM-dd")}\"";
+                        return $"\"{DateTime.Now:yyyy -MM-dd}\"";
                     case OpenApiValueType.DateTime:
-                        return $"\"{DateTime.Now.ToString("yyyy-MM-ddTHH:mm:ssZ")}\"";
+                        return $"\"{DateTime.Now:yyyy-MM-ddTHH:mm:ssZ}\"";
                     case OpenApiValueType.Password:
                         return "\"P@ssW0rd\"";
                     case OpenApiValueType.Byte:
@@ -2299,6 +2298,36 @@ namespace OpenApiExtended
             }
             return null;
             // ---------------------------------------------------------------------------------------------------------------------------------------------------------------
+        }
+        public static string GetGuidTypeScriptType(bool exportDefault = true)
+        {
+            var @default = exportDefault ? " default " : " ";
+            var source = @$"
+            export{@default}class GUID {{
+                private str: string;
+
+                constructor(str?: string) {{
+                    this.str = str || GUID.getNewGUIDString();
+                }}
+
+                toString() {{
+                    return this.str;
+                }}
+
+                private static getNewGUIDString() {{
+                    let d = new Date().getTime();
+                    if (window.performance && typeof window.performance.now === ""function"") {{
+                        d += performance.now();
+                    }}
+                    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {{
+                        let r = (d + Math.random() * 16) % 16 | 0;
+                        d = Math.floor(d/16);
+                        return (c=='x' ? r : (r & 0x3 | 0x8)).toString(16);
+                    }});
+                }}
+            }}".Trim();
+
+            return source;
         }
         // ---------------------------------------------------------------------------------------------------------------------------------------------------------------
     }

@@ -9,4 +9,5 @@ public class TypeScriptConfiguration
     public bool ReplaceEmptyObjectsWithUnknownType { get; set; } = false;
     public bool GenerateComments { get; set; } = false;
     public bool ExportWithDefault { get; set; } = false;
+    public bool UseGuidType { get; set; } = false;
 }
