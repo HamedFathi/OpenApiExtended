@@ -2040,6 +2040,7 @@ namespace OpenApiExtended
         // List of sources vs one source
         // add undefined to the type
         // Singular & Plural for array
+        // unknown type for empty object
         public static string ToTypeScript(this OpenApiSchema openApiSchema, string rootName = "Root", TypeScriptResult typeScriptResult = TypeScriptResult.Interface)
         {
             if (openApiSchema == null)
