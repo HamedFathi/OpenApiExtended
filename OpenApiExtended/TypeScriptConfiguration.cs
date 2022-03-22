@@ -1,6 +1,4 @@
-﻿using OpenApiExtended.Enums;
-
-namespace OpenApiExtended;
+﻿namespace OpenApiExtended;
 
 public class TypeScriptConfiguration
 {
