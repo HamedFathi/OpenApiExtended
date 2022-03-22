@@ -11,6 +11,18 @@ namespace OpenApiExtended
 {
     internal static class Helper
     {
+        private static readonly Pluralizer pluralizer = new Pluralizer();
+
+        internal static string Pluralize(this string word)
+        {
+            return pluralizer.Pluralize(word);
+        }
+
+        internal static string Singularize(this string word)
+        {
+            return pluralizer.Singularize(word);
+        }
+
         internal static IEnumerable<T> DistinctBy<T, TKey>(this IEnumerable<T> items, Func<T, TKey> property)
         {
             return items.GroupBy(property).Select(x => x.First());

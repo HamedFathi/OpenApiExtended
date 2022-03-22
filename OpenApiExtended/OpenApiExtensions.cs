@@ -2039,6 +2039,7 @@ namespace OpenApiExtended
         // Interface or Type
         // List of sources vs one source
         // add undefined to the type
+        // Singular & Plural for array
         public static string ToTypeScript(this OpenApiSchema openApiSchema, string rootName = "Root", TypeScriptResult typeScriptResult = TypeScriptResult.Interface)
         {
             if (openApiSchema == null)
@@ -2077,7 +2078,9 @@ namespace OpenApiExtended
 
                     if (member.IsObject)
                     {
-                        source = source.ReplaceFirst(GetReplacementKey(member.ParentKey), GetTypeScriptMember(member, GetPascalName(member.Name)) + $"\r\n\t{GetReplacementKey(member.ParentKey)}");
+                        var hasArrayParent = members.Any(x => x.PathKey == member.PathKey && x.IsArray);
+                        if (!hasArrayParent)
+                            source = source.ReplaceFirst(GetReplacementKey(member.ParentKey), GetTypeScriptMember(member, GetPascalName(member.Name)) + $"\r\n\t{GetReplacementKey(member.ParentKey)}");
 
                         var sb = new StringBuilder();
                         sb.AppendLine($"export interface {GetPascalName(member.Name)} {{");
