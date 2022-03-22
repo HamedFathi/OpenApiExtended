@@ -2041,12 +2041,17 @@ namespace OpenApiExtended
         // add undefined to the type
         // Singular & Plural for array
         // unknown type for empty object
-        public static string ToTypeScript(this OpenApiSchema openApiSchema, string rootName = "Root", TypeScriptResult typeScriptResult = TypeScriptResult.Interface)
+        // add descriptions and comments
+        public static string ToTypeScript(this OpenApiSchema openApiSchema, string rootName = "Root", TypeScriptConfiguration typeScriptConfiguration = null)
         {
             if (openApiSchema == null)
             {
                 throw new ArgumentNullException(nameof(openApiSchema));
             }
+
+            typeScriptConfiguration ??= new TypeScriptConfiguration();
+            var export = typeScriptConfiguration.ExportWithDefault ? "export default" : "export";
+
             var members = openApiSchema.GetMembersInfo();
             var source = "";
             Regex regex = new("___.+?___", RegexOptions.Compiled);
@@ -2059,7 +2064,7 @@ namespace OpenApiExtended
                 if (member.IsRoot)
                 {
                     var sb = new StringBuilder();
-                    sb.AppendLine($"export interface {GetPascalName(rootName)} {{");
+                    sb.AppendLine($"{export} interface {GetPascalName(rootName)} {{");
                     sb.AppendLine($"{GetReplacementKey(Constants.RootIndicator)}", 1);
                     sb.AppendLine("}");
                     source = sb.ToString();
@@ -2084,7 +2089,7 @@ namespace OpenApiExtended
                             source = source.ReplaceFirst(GetReplacementKey(member.ParentKey), GetTypeScriptMember(member, GetPascalName(member.Name)) + $"\r\n\t{GetReplacementKey(member.ParentKey)}");
 
                         var sb = new StringBuilder();
-                        sb.AppendLine($"export interface {GetPascalName(member.Name)} {{");
+                        sb.AppendLine($"{export} interface {GetPascalName(member.Name)} {{");
                         sb.AppendLine($"{GetReplacementKey(member.PathKey)}", 1);
                         sb.AppendLine("}");
                         source += sb.ToString();
