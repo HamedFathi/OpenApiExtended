@@ -1,8 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
+using System.Text;
 using System.Text.RegularExpressions;
 using Microsoft.OpenApi.Models;
+using OpenApiExtended.Enums;
+
 // ReSharper disable UnusedMember.Global
 
 namespace OpenApiExtended
@@ -1938,7 +1942,7 @@ namespace OpenApiExtended
             return result;
         }
         // ---------------------------------------------------------------------------------------------------------------------------------------------------------------
-        public static string ToJsonExample(this OpenApiSchema openApiSchema, Func<OpenApiMemberInfo, object> dataProvider = null)
+        public static string ToJson(this OpenApiSchema openApiSchema, Func<OpenApiMemberInfo, object> dataProvider = null)
         {
             if (openApiSchema == null)
             {
@@ -2030,6 +2034,104 @@ namespace OpenApiExtended
 
             string GetReplacementKey(string data) => $"___{data}___";
         }
+        // Prefix I
+        // export default
+        // Interface or Type
+        // List of sources vs one source
+        // add undefined to the type
+        public static string ToTypeScript(this OpenApiSchema openApiSchema, string rootName = "Root", TypeScriptResult typeScriptResult = TypeScriptResult.Interface)
+        {
+            if (openApiSchema == null)
+            {
+                throw new ArgumentNullException(nameof(openApiSchema));
+            }
+            var members = openApiSchema.GetMembersInfo();
+            var source = "";
+            Regex regex = new("___.+?___", RegexOptions.Compiled);
+            if (members.Count == 0)
+            {
+                return string.Empty;
+            }
+            foreach (var member in members)
+            {
+                if (member.IsRoot)
+                {
+                    var sb = new StringBuilder();
+                    sb.AppendLine($"export interface {GetPascalName(rootName)} {{");
+                    sb.AppendLine($"{GetReplacementKey(Constants.RootIndicator)}", 1);
+                    sb.AppendLine("}");
+                    source = sb.ToString();
+                }
+                else
+                {
+                    if (member.IsPrimitive && !member.IsArrayItem)
+                    {
+                        source = source.ReplaceFirst(GetReplacementKey(member.ParentKey), GetTypeScriptMember(member) + $"\r\n\t{GetReplacementKey(member.ParentKey)}");
+                    }
+
+                    if (member.IsPrimitive && member.IsArrayItem)
+                    {
+                        var name = members.First(x => x.PathKey == member.ParentKey && x.IsArray).Name;
+                        source = source.ReplaceFirst(GetReplacementKey(member.ParentKey), GetTypeScriptMember(member, member.Type + "[]", name) + $"\r\n\t{GetReplacementKey(member.ParentKey)}");
+                    }
+
+                    if (member.IsObject)
+                    {
+                        source = source.ReplaceFirst(GetReplacementKey(member.ParentKey), GetTypeScriptMember(member, GetPascalName(member.Name)) + $"\r\n\t{GetReplacementKey(member.ParentKey)}");
+
+                        var sb = new StringBuilder();
+                        sb.AppendLine($"export interface {GetPascalName(member.Name)} {{");
+                        sb.AppendLine($"{GetReplacementKey(member.PathKey)}", 1);
+                        sb.AppendLine("}");
+                        source += sb.ToString();
+                    }
+
+                    if (member.IsArray)
+                    {
+                        var objectInArray = members.FirstOrDefault(x => x.PathKey == member.PathKey && x.IsObject);
+                        var isSimpleArray = objectInArray == null;
+                        if (isSimpleArray)
+                        {
+                            source = source.ReplaceFirst(GetReplacementKey(member.ParentKey), GetReplacementKey(member.PathKey) + $"\r\n\t{GetReplacementKey(member.ParentKey)}");
+                        }
+                        else
+                        {
+                            var type = GetPascalName(objectInArray.Name) + "[]";
+                            source = source.ReplaceFirst(GetReplacementKey(member.ParentKey), GetTypeScriptMember(member, type) + $"\r\n\t{GetReplacementKey(member.ParentKey)}");
+                        }
+                    }
+                }
+            }
+
+            source = regex.Replace(source, string.Empty);
+            source = source.Split('\n').Where(x => !string.IsNullOrEmpty(x.Trim()))
+                .Aggregate((a, b) => a + '\n' + b);
+            return source;
+
+            string GetReplacementKey(string data) => $"___{data}___";
+            string GetRequiredSign(OpenApiMemberInfo openApiMemberInfo) => !openApiMemberInfo.IsRequired ? "?" : string.Empty;
+            string GetPascalName(string name)
+            {
+                if (string.IsNullOrEmpty(name) || string.IsNullOrWhiteSpace(name)) return name;
+
+                var result = name.RemoveDuplicateWhiteSpaces().Trim();
+                TextInfo info = CultureInfo.InvariantCulture.TextInfo;
+                result = info.ToTitleCase(result).Replace(" ", string.Empty);
+                return result;
+            }
+            string GetTypeScriptMember(OpenApiMemberInfo member, string type = null, string simpleArrayName = null)
+            {
+                var tsType = GetTypeScriptType(GetOpenApiValueType(member.Type, member.Format));
+                var interfaceType = string.IsNullOrEmpty(type) ? tsType : type;
+                if (member.IsArrayItem && string.IsNullOrEmpty(simpleArrayName))
+                {
+                    throw new ArgumentNullException(nameof(simpleArrayName));
+                }
+                var name = !member.IsArrayItem ? member.Name : simpleArrayName;
+                var result = $"{name}{GetRequiredSign(member)}: {interfaceType};";
+                return result;
+            }
+        }
         public static OpenApiValueType GetOpenApiValueType(string type, string format)
         {
             if (string.IsNullOrEmpty(type))
@@ -2065,6 +2167,51 @@ namespace OpenApiExtended
             if (type.ToLower() == "object") return OpenApiValueType.Object;
 
             return OpenApiValueType.Unknown;
+
+        }
+        public static string GetTypeScriptType(OpenApiValueType openApiValueType)
+        {
+            switch (openApiValueType)
+            {
+                case OpenApiValueType.Binary:
+                case OpenApiValueType.Unknown:
+                    return "any";
+
+                case OpenApiValueType.Boolean:
+                    return "boolean";
+
+                case OpenApiValueType.Integer:
+                case OpenApiValueType.Int32:
+                case OpenApiValueType.Int64:
+                case OpenApiValueType.Number:
+                case OpenApiValueType.Float:
+                case OpenApiValueType.Double:
+                    return "number";
+
+                case OpenApiValueType.Date:
+                case OpenApiValueType.DateTime:
+                    return "Date";
+
+                case OpenApiValueType.String:
+                case OpenApiValueType.Password:
+                case OpenApiValueType.Byte:
+                case OpenApiValueType.Email:
+                case OpenApiValueType.Uuid:
+                case OpenApiValueType.Uri:
+                case OpenApiValueType.HostName:
+                case OpenApiValueType.IPv4:
+                case OpenApiValueType.IPv6:
+                    return "string";
+
+                case OpenApiValueType.Null:
+                    return "null";
+                case OpenApiValueType.Array:
+                    return "any[]";
+                case OpenApiValueType.Object:
+                    return "any";
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(openApiValueType), openApiValueType, null);
+            }
 
         }
         private static object GetOpenApiSchemaDefaultValue(this OpenApiSchema openApiSchema)

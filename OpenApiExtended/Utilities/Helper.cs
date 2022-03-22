@@ -3,7 +3,9 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
 using System.Reflection;
+using System.Text;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 
 namespace OpenApiExtended
 {
@@ -29,6 +31,41 @@ namespace OpenApiExtended
                 Description = descriptions[i]
             });
         }
+
+        internal static void AppendLine(this StringBuilder builder, string value, int counter, bool tab = true)
+        {
+            if (counter <= 0)
+            {
+                builder.AppendLine(value);
+            }
+            else
+            {
+                var space = tab ? new string('\t', counter) : new string(' ', counter);
+                builder.AppendLine($"{space}{value}");
+            }
+        }
+
+        internal static void Append(this StringBuilder builder, string value, int counter, bool tab = true)
+        {
+            if (counter <= 0)
+            {
+                builder.Append(value);
+            }
+            else
+            {
+                var space = tab ? new string('\t', counter) : new string(' ', counter);
+                builder.Append($"{space}{value}");
+            }
+        }
+
+        internal static string RemoveDuplicateWhiteSpaces(this string text, bool multiLine = false)
+        {
+            if (multiLine)
+                return Regex.Replace(text, @"\s+", " ", RegexOptions.Multiline);
+
+            return Regex.Replace(text, @"\s+", " ");
+        }
+
         internal static string ToFormattedJson(this string jsonText)
         {
             if (string.IsNullOrEmpty(jsonText))
@@ -96,6 +133,6 @@ namespace OpenApiExtended
                     ?.GetCustomAttribute<DescriptionAttribute>()
                     ?.Description
                 ?? (replaceNullWithEnumName ? null : @enum.ToString());
-        }        
+        }
     }
 }
