@@ -2033,13 +2033,8 @@ namespace OpenApiExtended
 
             string GetReplacementKey(string data) => $"___{data}___";
         }
-        // Prefix I
-        // export default
-        // Interface or Type
         // List of sources vs one source
         // add undefined to the type
-        // Singular & Plural for array
-        // unknown type for empty object
         // add descriptions and comments
         /*
         export class GUID {
@@ -2075,6 +2070,7 @@ namespace OpenApiExtended
 
             typeScriptConfiguration ??= new TypeScriptConfiguration();
             var export = typeScriptConfiguration.ExportWithDefault ? "export default" : "export";
+            var prefixData = typeScriptConfiguration.StartInterfaceNameWithI ? "I" : string.Empty;
 
             var members = openApiSchema.GetMembersInfo();
             var source = "";
@@ -2088,7 +2084,7 @@ namespace OpenApiExtended
                 if (member.IsRoot)
                 {
                     var sb = new StringBuilder();
-                    sb.AppendLine($"{export} interface {GetPascalName(rootName)} {{");
+                    sb.AppendLine($"{export} interface {GetPascalName(rootName, prefixData)} {{");
                     sb.AppendLine($"{GetReplacementKey(Constants.RootIndicator)}", 1);
                     sb.AppendLine("}");
                     source = sb.ToString();
@@ -2108,15 +2104,23 @@ namespace OpenApiExtended
 
                     if (member.IsObject)
                     {
+                        var isEmptyObject = member.HasEmptyReference;
                         var hasArrayParent = members.Any(x => x.PathKey == member.PathKey && x.IsArray);
                         if (!hasArrayParent)
-                            source = source.ReplaceFirst(GetReplacementKey(member.ParentKey), GetTypeScriptMember(member, GetPascalName(member.Name)) + $"\r\n\t{GetReplacementKey(member.ParentKey)}");
-
-                        var sb = new StringBuilder();
-                        sb.AppendLine($"{export} interface {GetPascalName(member.Name)} {{");
-                        sb.AppendLine($"{GetReplacementKey(member.PathKey)}", 1);
-                        sb.AppendLine("}");
-                        source += sb.ToString();
+                        {
+                            var typeName = isEmptyObject && typeScriptConfiguration.ReplaceEmptyObjectsWithUnknownType
+                                ? "unknown"
+                                : GetPascalName(member.Name);
+                            source = source.ReplaceFirst(GetReplacementKey(member.ParentKey), GetTypeScriptMember(member, typeName) + $"\r\n\t{GetReplacementKey(member.ParentKey)}");
+                        }
+                        if (!(isEmptyObject && typeScriptConfiguration.ReplaceEmptyObjectsWithUnknownType))
+                        {
+                            var sb = new StringBuilder();
+                            sb.AppendLine($"{export} interface {GetPascalName(member.Name, prefixData)} {{");
+                            sb.AppendLine($"{GetReplacementKey(member.PathKey)}", 1);
+                            sb.AppendLine("}");
+                            source += sb.ToString();
+                        }
                     }
 
                     if (member.IsArray)
@@ -2129,7 +2133,7 @@ namespace OpenApiExtended
                         }
                         else
                         {
-                            var type = GetPascalName(objectInArray.Name) + "[]";
+                            var type = GetPascalName(objectInArray.Name, prefixData) + "[]";
                             source = source.ReplaceFirst(GetReplacementKey(member.ParentKey), GetTypeScriptMember(member, type) + $"\r\n\t{GetReplacementKey(member.ParentKey)}");
                         }
                     }
@@ -2138,19 +2142,23 @@ namespace OpenApiExtended
 
             source = regex.Replace(source, string.Empty);
             source = source.Split('\n').Where(x => !string.IsNullOrEmpty(x.Trim()))
-                .Aggregate((a, b) => a + '\n' + b);
+                .Aggregate((a, b) => a + '\n' + b).Trim();
             return source;
 
             string GetReplacementKey(string data) => $"___{data}___";
             string GetRequiredSign(OpenApiMemberInfo openApiMemberInfo) => !openApiMemberInfo.IsRequired ? "?" : string.Empty;
-            string GetPascalName(string name)
+            string GetPascalName(string name, string prefix = null, bool singular = true)
             {
                 if (string.IsNullOrEmpty(name) || string.IsNullOrWhiteSpace(name)) return name;
 
+                prefix = string.IsNullOrEmpty(prefix) ? string.Empty : prefix;
+
                 var result = name.RemoveDuplicateWhiteSpaces().Trim();
-                TextInfo info = CultureInfo.InvariantCulture.TextInfo;
+                var info = CultureInfo.InvariantCulture.TextInfo;
                 result = info.ToTitleCase(result).Replace(" ", string.Empty);
-                return result;
+                result = singular ? result.Singularize() : result;
+
+                return prefix + result;
             }
             string GetTypeScriptMember(OpenApiMemberInfo member, string type = null, string simpleArrayName = null)
             {
@@ -2163,6 +2171,11 @@ namespace OpenApiExtended
                 var name = !member.IsArrayItem ? member.Name : simpleArrayName;
                 var result = $"{name}{GetRequiredSign(member)}: {interfaceType};";
                 return result;
+            }
+
+            bool IsGuid(OpenApiMemberInfo member)
+            {
+                return member.Type.ToLower() == "string" && member.Format.ToLower() == "uuid";
             }
         }
         public static OpenApiValueType GetOpenApiValueType(string type, string format)
