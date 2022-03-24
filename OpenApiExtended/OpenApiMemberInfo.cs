@@ -21,7 +21,8 @@ namespace OpenApiExtended
         public bool IsArrayItem => Name != null && Constants.ArrayItemRegex.IsMatch(Name);
         public bool IsArray { get; set; }
         public string[] Required { get; set; }
-        public bool IsRequired { get; set; }
+        public bool IsOptional { get; set; }
+        public bool IsNullable { get; set; }
         public string[] Parents { get; set; }
         public string Name { get; set; }
         public OpenApiSchema Value { get; set; }

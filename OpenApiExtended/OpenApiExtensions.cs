@@ -1934,7 +1934,8 @@ namespace OpenApiExtended
                 item.Format = member.Value.Format;
                 item.Type = member.Value.Type;
                 item.Required = openApiSchema.Required.ToArray();
-                item.IsRequired = openApiSchema.Required.Any(x => x == name);
+                item.IsOptional = openApiSchema.Required.All(x => x != name);
+                item.IsNullable = member.Value.Nullable;
                 item.IsRoot = member.Key.Count == 0;
                 result.Add(item);
             }
@@ -2034,7 +2035,6 @@ namespace OpenApiExtended
             string GetReplacementKey(string data) => $"___{data}___";
         }
         // List of sources vs one source
-        // add undefined to the type
         // add descriptions and comments
         /*
         export class GUID {
@@ -2074,7 +2074,7 @@ namespace OpenApiExtended
 
             var members = openApiSchema.GetMembersInfo();
             var source = "";
-            Regex regex = new("___.+?___", RegexOptions.Compiled);
+            Regex regex = new("_>_.+?_<_", RegexOptions.Compiled);
             if (members.Count == 0)
             {
                 return string.Empty;
@@ -2145,8 +2145,8 @@ namespace OpenApiExtended
                 .Aggregate((a, b) => a + '\n' + b).Trim();
             return source;
 
-            string GetReplacementKey(string data) => $"___{data}___";
-            string GetRequiredSign(OpenApiMemberInfo openApiMemberInfo) => !openApiMemberInfo.IsRequired ? "?" : string.Empty;
+            string GetReplacementKey(string data) => $"_>_{data}_<_";
+            string GetOptionalSign(OpenApiMemberInfo openApiMemberInfo) => openApiMemberInfo.IsOptional ? "?" : string.Empty;
             string GetPascalName(string name, string prefix = null, bool singular = true)
             {
                 if (string.IsNullOrEmpty(name) || string.IsNullOrWhiteSpace(name)) return name;
@@ -2169,13 +2169,48 @@ namespace OpenApiExtended
                     throw new ArgumentNullException(nameof(simpleArrayName));
                 }
                 var name = !member.IsArrayItem ? member.Name : simpleArrayName;
-                var result = $"{name}{GetRequiredSign(member)}: {interfaceType};";
+                var nullable = member.IsNullable ? " | undefined" : string.Empty;
+                var result = $"{name}{GetOptionalSign(member)}: {interfaceType}{nullable};";
                 return result;
             }
+        }
 
-            bool IsGuid(OpenApiMemberInfo member)
+        public static IList<string> ToTypeScriptSources(this OpenApiSchema openApiSchema, string rootName = "Root",
+            TypeScriptConfiguration typeScriptConfiguration = null)
+        {
+            var result = new List<string>();
+            var ts = openApiSchema.ToTypeScript(rootName, typeScriptConfiguration);
+            if (string.IsNullOrEmpty(ts))
             {
-                return member.Type.ToLower() == "string" && member.Format.ToLower() == "uuid";
+                return result;
+            }
+            var hasMultiResult = IsInterfaceLine(ts);
+            if (hasMultiResult)
+            {
+                var localList = new List<string>();
+                var lines = ts.Split('\n');
+                foreach (var line in lines)
+                {
+                    if (IsInterfaceLine(line))
+                    {
+                        localList.Clear();
+                    }
+                    localList.Add(line);
+                    if (line.Trim() == "}")
+                    {
+                        result.Add(localList.Aggregate((a, b) => a + '\n' + b).Trim());
+                    }
+                }
+            }
+            else
+            {
+                result.Add(ts);
+            }
+            return result;
+
+            bool IsInterfaceLine(string code)
+            {
+                return code.Contains("export interface") || code.Contains("export default interface");
             }
         }
         public static OpenApiValueType GetOpenApiValueType(string type, string format)
@@ -2311,36 +2346,6 @@ namespace OpenApiExtended
             }
             return null;
             // ---------------------------------------------------------------------------------------------------------------------------------------------------------------
-        }
-        public static string GetGuidTypeScriptType(bool exportDefault = true)
-        {
-            var @default = exportDefault ? " default " : " ";
-            var source = @$"
-export{@default}class GUID {{
-    private str: string;
-
-    constructor(str?: string) {{
-        this.str = str || GUID.getNewGUIDString();
-    }}
-
-    toString() {{
-        return this.str;
-    }}
-
-    private static getNewGUIDString() {{
-        let d = new Date().getTime();
-        if (window.performance && typeof window.performance.now === ""function"") {{
-            d += performance.now();
-        }}
-        return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {{
-            let r = (d + Math.random() * 16) % 16 | 0;
-            d = Math.floor(d/16);
-            return (c=='x' ? r : (r & 0x3 | 0x8)).toString(16);
-        }});
-    }}
-}}".Trim();
-
-            return source;
         }
         // ---------------------------------------------------------------------------------------------------------------------------------------------------------------
     }
