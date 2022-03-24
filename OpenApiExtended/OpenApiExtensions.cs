@@ -224,6 +224,42 @@ namespace OpenApiExtended
             }
             return openApiOperation.Parameters != null && openApiOperation.Parameters.Any();
         }
+        public static bool IsCookie(this OpenApiParameter openApiParameter)
+        {
+            if (openApiParameter == null)
+            {
+                throw new ArgumentNullException(nameof(openApiParameter));
+            }
+
+            return openApiParameter.In == ParameterLocation.Cookie;
+        }
+        public static bool IsHeader(this OpenApiParameter openApiParameter)
+        {
+            if (openApiParameter == null)
+            {
+                throw new ArgumentNullException(nameof(openApiParameter));
+            }
+
+            return openApiParameter.In == ParameterLocation.Header;
+        }
+        public static bool IsPath(this OpenApiParameter openApiParameter)
+        {
+            if (openApiParameter == null)
+            {
+                throw new ArgumentNullException(nameof(openApiParameter));
+            }
+
+            return openApiParameter.In == ParameterLocation.Path;
+        }
+        public static bool IsQuery(this OpenApiParameter openApiParameter)
+        {
+            if (openApiParameter == null)
+            {
+                throw new ArgumentNullException(nameof(openApiParameter));
+            }
+
+            return openApiParameter.In == ParameterLocation.Query;
+        }
         public static IList<OpenApiParameter> GetParameters(this OpenApiOperation openApiOperation)
         {
             if (openApiOperation == null)
@@ -2342,6 +2378,14 @@ namespace OpenApiExtended
         // ---------------------------------------------------------------------------------------------------------------------------------------------------------------
         public static void Traverse(this OpenApiDocument openApiDocument, Action<string, OpenApiMemberType, object> action)
         {
+            if (openApiDocument == null)
+            {
+                throw new ArgumentNullException(nameof(openApiDocument));
+            }
+            if (action == null)
+            {
+                throw new ArgumentNullException(nameof(action));
+            }
             var paths = openApiDocument.GetPaths();
             foreach (var path in paths)
             {
