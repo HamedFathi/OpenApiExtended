@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
+using System.Linq.Expressions;
 using System.Text;
 using System.Text.RegularExpressions;
 using Microsoft.OpenApi.Models;
@@ -1942,6 +1943,12 @@ namespace OpenApiExtended
             return result;
         }
         // ---------------------------------------------------------------------------------------------------------------------------------------------------------------
+        public static string ToJson(this OpenApiSchema openApiSchema, Expression<Func<OpenApiMemberInfo, object>> dataProvider = null)
+        {
+            var dp = dataProvider?.Compile();
+            var json = openApiSchema.ToJson(dp);
+            return json;
+        }
         public static string ToJson(this OpenApiSchema openApiSchema, Func<OpenApiMemberInfo, object> dataProvider = null)
         {
             if (openApiSchema == null)
@@ -2034,33 +2041,7 @@ namespace OpenApiExtended
 
             string GetReplacementKey(string data) => $"___{data}___";
         }
-        // List of sources vs one source
         // add descriptions and comments
-        /*
-        export class GUID {
-            private str: string;
-
-            constructor(str?: string) {
-                this.str = str || GUID.getNewGUIDString();
-            }
-
-            toString() {
-                return this.str;
-            }
-
-            private static getNewGUIDString() {
-                let d = new Date().getTime();
-                if (window.performance && typeof window.performance.now === "function") {
-                    d += performance.now();
-                }
-                return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
-                    let r = (d + Math.random() * 16) % 16 | 0;
-                    d = Math.floor(d/16);
-                    return (c=='x' ? r : (r & 0x3 | 0x8)).toString(16);
-                });
-            }
-        }
-        */
         public static string ToTypeScript(this OpenApiSchema openApiSchema, string rootName = "Root", TypeScriptConfiguration typeScriptConfiguration = null)
         {
             if (openApiSchema == null)
@@ -2157,8 +2138,11 @@ namespace OpenApiExtended
                 var info = CultureInfo.InvariantCulture.TextInfo;
                 result = info.ToTitleCase(result).Replace(" ", string.Empty);
                 result = singular ? result.Singularize() : result;
-
-                return prefix + result;
+                result = prefix + result;
+                result = result.EndsWith("id")
+                    ? result.Substring(0, result.Length - 2) + "Id"
+                    : result;
+                return result;
             }
             string GetTypeScriptMember(OpenApiMemberInfo member, string type = null, string simpleArrayName = null)
             {
@@ -2174,7 +2158,6 @@ namespace OpenApiExtended
                 return result;
             }
         }
-
         public static IList<string> ToTypeScriptSources(this OpenApiSchema openApiSchema, string rootName = "Root",
             TypeScriptConfiguration typeScriptConfiguration = null)
         {
@@ -2346,6 +2329,22 @@ namespace OpenApiExtended
             }
             return null;
             // ---------------------------------------------------------------------------------------------------------------------------------------------------------------
+        }
+        public static IList<string> GetTypeScriptAllTypes(this string typescriptSource)
+        {
+            var hashSet = new HashSet<string>();
+            var matches = Regex.Matches(typescriptSource, ":(.+);");
+            foreach (Match match in matches)
+            {
+                var group = match.Groups[1].Value;
+                var parts =
+                    group.Split(' ')
+                        .Where(x => x.Trim() != string.Empty && x.Trim() != "|")
+                        .Select(x => x.TrimEnd('?'))
+                        .ToList();
+                hashSet.AddRange(parts);
+            }
+            return hashSet.ToList();
         }
         // ---------------------------------------------------------------------------------------------------------------------------------------------------------------
     }

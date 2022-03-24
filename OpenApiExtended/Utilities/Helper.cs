@@ -18,6 +18,16 @@ namespace OpenApiExtended
             return pluralizer.Pluralize(word);
         }
 
+        internal static bool AddRange<T>(this HashSet<T> @this, IEnumerable<T> items)
+        {
+            if (items == null) return false;
+            var allAdded = true;
+            foreach (var item in items)
+            {
+                allAdded &= @this.Add(item);
+            }
+            return allAdded;
+        }
         internal static string Singularize(this string word)
         {
             return pluralizer.Singularize(word);
