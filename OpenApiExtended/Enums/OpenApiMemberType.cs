@@ -4,7 +4,7 @@ public enum OpenApiMemberType
 {
     Parameter,
     RequestBody,
-    Responses,
+    Response,
     Path,
     RequestBodyMembers,
     ResponseMembers,

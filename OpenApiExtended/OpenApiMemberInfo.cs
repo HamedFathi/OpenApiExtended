@@ -8,7 +8,7 @@ namespace OpenApiExtended
         public string Type { get; set; }
         public string Format { get; set; }
         public string[] Path { get; set; }
-        public string PathKey => (Path == null || Path.Length == 0) ? null : (Constants.RootIndicator + "." + Path.Aggregate((a, b) => a + "." + b)).Replace("->", "");
+        public string PathKey => Path == null || Path.Length == 0 ? null : (Constants.RootIndicator + "." + Path.Aggregate((a, b) => a + "." + b)).Replace("->", "");
         public string ParentKey => Parents == null ? null : Parents.Length == 0 ? Constants.RootIndicator : (Constants.RootIndicator + "." + Parents.Aggregate((a, b) => a + "." + b)).Replace("->", "");
         public string ParentType { get; set; }
         public bool HasReference { get; set; }

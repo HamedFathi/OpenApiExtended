@@ -2411,7 +2411,7 @@ namespace OpenApiExtended
                         action(reqBodyKey, OpenApiMemberType.RequestBody, reqBody);
                         foreach (var item in data)
                         {
-                            var members = item.GetMembers();
+                            var members = item.GetMembersInfo();
                             action(reqBodyKey, OpenApiMemberType.RequestBodyMembers, members);
                         }
                     }
@@ -2420,19 +2420,23 @@ namespace OpenApiExtended
                     {
                         var responseKey = reqBodyKey + ">" + response.Key;
                         var res = response.Value;
-                        action(responseKey, OpenApiMemberType.Responses, res);
+                        action(responseKey, OpenApiMemberType.Response, res);
                         if (res != null)
                         {
                             var data = res.GetResponsesSchema(x => x == OpenApiMimeType.ApplicationJson);
                             foreach (var item in data)
                             {
-                                var members = item.GetMembers();
+                                var members = item.GetMembersInfo();
                                 action(responseKey, OpenApiMemberType.ResponseMembers, members);
                             }
                         }
                     }
                 }
             }
+        }
+        public static bool IsListOfOpenApiMemberInfo(this object obj)
+        {
+            return obj is IList<OpenApiMemberInfo>;
         }
         public static bool IsOpenApiMemberInfo(this object obj)
         {
