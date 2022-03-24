@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
-using System.Linq.Expressions;
 using System.Text;
 using System.Text.RegularExpressions;
 using Microsoft.OpenApi.Models;
@@ -1943,12 +1942,6 @@ namespace OpenApiExtended
             return result;
         }
         // ---------------------------------------------------------------------------------------------------------------------------------------------------------------
-        public static string ToJson(this OpenApiSchema openApiSchema, Expression<Func<OpenApiMemberInfo, object>> dataProvider = null)
-        {
-            var dp = dataProvider?.Compile();
-            var json = openApiSchema.ToJson(dp);
-            return json;
-        }
         public static string ToJson(this OpenApiSchema openApiSchema, Func<OpenApiMemberInfo, object> dataProvider = null)
         {
             if (openApiSchema == null)
@@ -2345,6 +2338,81 @@ namespace OpenApiExtended
                 hashSet.AddRange(parts);
             }
             return hashSet.ToList();
+        }
+        // ---------------------------------------------------------------------------------------------------------------------------------------------------------------
+        public static void Traverse(this OpenApiDocument openApiDocument, Action<string, OpenApiMemberType, object> action)
+        {
+            var paths = openApiDocument.GetPaths();
+            foreach (var path in paths)
+            {
+                var pathKey = path.Key;
+                var pathValue = path.Value;
+                action(pathKey, OpenApiMemberType.Path, pathValue);
+                foreach (var op in pathValue.Operations)
+                {
+                    var operationKey = op.Key.ToString().ToLower();
+                    var reqBodyKey = pathKey + ">" + operationKey;
+                    var parameters = op.Value.Parameters;
+                    if (parameters is { Count: > 0 })
+                    {
+                        foreach (var item in parameters)
+                        {
+                            action(reqBodyKey, OpenApiMemberType.Parameter, item);
+                        }
+                    }
+                    var reqBody = op.Value.RequestBody;
+                    if (reqBody != null)
+                    {
+                        var data = reqBody.GetRequestBodySchema(x => x == OpenApiMimeType.ApplicationJson);
+                        action(reqBodyKey, OpenApiMemberType.RequestBody, reqBody);
+                        foreach (var item in data)
+                        {
+                            var members = item.GetMembers();
+                            action(reqBodyKey, OpenApiMemberType.RequestBodyMembers, members);
+                        }
+                    }
+                    var responses = op.Value.Responses;
+                    foreach (var response in responses)
+                    {
+                        var responseKey = reqBodyKey + ">" + response.Key;
+                        var res = response.Value;
+                        action(responseKey, OpenApiMemberType.Responses, res);
+                        if (res != null)
+                        {
+                            var data = res.GetResponsesSchema(x => x == OpenApiMimeType.ApplicationJson);
+                            foreach (var item in data)
+                            {
+                                var members = item.GetMembers();
+                                action(responseKey, OpenApiMemberType.ResponseMembers, members);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        public static bool IsOpenApiMemberInfo(this object obj)
+        {
+            return obj is OpenApiMemberInfo;
+        }
+        public static bool IsOpenApiSchema(this object obj)
+        {
+            return obj is OpenApiSchema;
+        }
+        public static bool IsOpenApiPathItem(this object obj)
+        {
+            return obj is OpenApiPathItem;
+        }
+        public static bool IsOpenApiRequestBody(this object obj)
+        {
+            return obj is OpenApiRequestBody;
+        }
+        public static bool IsOpenApiResponses(this object obj)
+        {
+            return obj is OpenApiResponses;
+        }
+        public static bool IsOpenApiResponse(this object obj)
+        {
+            return obj is OpenApiResponse;
         }
         // ---------------------------------------------------------------------------------------------------------------------------------------------------------------
     }
