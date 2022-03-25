@@ -2,11 +2,33 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
+// ReSharper disable UnusedMember.Global
 
 namespace OpenApiExtended
 {
     public static class OpenApiUtility
     {
+        public static IList<string> GetAllTypeScriptTypes(string typescriptSource, bool sorted = false)
+        {
+            var hashSet = new HashSet<string>();
+            var matches = Regex.Matches(typescriptSource, ":(.+);");
+            foreach (Match match in matches)
+            {
+                var group = match.Groups[1].Value;
+                var parts =
+                    group.Split(' ')
+                        .Where(x => x.Trim() != string.Empty && x.Trim() != "|")
+                        .Select(x => x.TrimEnd('?'))
+                        .ToList();
+                hashSet.AddRange(parts);
+            }
+            var result = hashSet.ToList();
+            if (sorted)
+            {
+                result.Sort();
+            }
+            return result;
+        }
         public static OpenApiValueType GetOpenApiValueType(string type, string format)
         {
             if (string.IsNullOrEmpty(type))
@@ -42,9 +64,7 @@ namespace OpenApiExtended
             if (type.ToLower() == "object") return OpenApiValueType.Object;
 
             return OpenApiValueType.Unknown;
-
         }
-
         public static string GetTypeScriptType(OpenApiValueType openApiValueType)
         {
             switch (openApiValueType)
@@ -81,36 +101,16 @@ namespace OpenApiExtended
 
                 case OpenApiValueType.Null:
                     return "null";
+
                 case OpenApiValueType.Array:
                     return "any[]";
+
                 case OpenApiValueType.Object:
                     return "any";
+
                 default:
                     throw new ArgumentOutOfRangeException(nameof(openApiValueType), openApiValueType, null);
             }
         }
-
-        public static IList<string> GetAllTypeScriptTypes(string typescriptSource, bool sorted = false)
-        {
-            var hashSet = new HashSet<string>();
-            var matches = Regex.Matches(typescriptSource, ":(.+);");
-            foreach (Match match in matches)
-            {
-                var group = match.Groups[1].Value;
-                var parts =
-                    group.Split(' ')
-                        .Where(x => x.Trim() != string.Empty && x.Trim() != "|")
-                        .Select(x => x.TrimEnd('?'))
-                        .ToList();
-                hashSet.AddRange(parts);
-            }
-            var result = hashSet.ToList();
-            if (sorted)
-            {
-                result.Sort();
-            }
-            return result;
-        }
-
     }
 }

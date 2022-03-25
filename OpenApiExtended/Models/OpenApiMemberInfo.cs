@@ -13,7 +13,7 @@ namespace OpenApiExtended
         public string ParentType { get; set; }
         public bool HasReference { get; set; }
         public string ReferenceId { get; set; }
-        public bool HasEmptyReference { get; set; }
+        public bool IsEmptyObject { get; set; }
         public bool IsObject { get; set; }
         public bool IsPrimitive { get; set; }
         public bool IsInRoot => Parents is { Length: 0 };

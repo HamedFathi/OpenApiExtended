@@ -896,7 +896,6 @@ namespace OpenApiExtended
             count = refs?.Count ?? 0;
             return refs;
         }
-
         public static IList<OpenApiReference> GetRequestBodySchemaReference(this OpenApiRequestBody openApiRequestBody)
         {
             if (openApiRequestBody == null)
@@ -984,7 +983,6 @@ namespace OpenApiExtended
             count = refs.Count;
             return refs;
         }
-
         public static bool HasResponse(this OpenApiOperation openApiOperation)
         {
             if (openApiOperation == null)
@@ -1035,7 +1033,6 @@ namespace OpenApiExtended
             count = responses.Count;
             return responses;
         }
-
         public static IList<OpenApiResponse> GetResponses(this OpenApiOperation openApiOperation, Func<string, bool> predicate)
         {
             if (openApiOperation == null)
@@ -1078,7 +1075,6 @@ namespace OpenApiExtended
             count = responses.Count;
             return responses;
         }
-
         public static IList<OpenApiMediaType> GetResponsesContent(this OpenApiOperation openApiOperation)
         {
             if (openApiOperation == null)
@@ -1146,7 +1142,6 @@ namespace OpenApiExtended
             count = content.Count;
             return content;
         }
-
         public static IList<OpenApiSchema> GetResponsesSchema(this OpenApiOperation openApiOperation)
         {
             if (openApiOperation == null)
@@ -1214,7 +1209,6 @@ namespace OpenApiExtended
             count = schemas.Count;
             return schemas;
         }
-
         public static IList<OpenApiReference> GetResponsesSchemaReference(this OpenApiResponse openApiResponse)
         {
             if (openApiResponse == null)
@@ -1284,7 +1278,6 @@ namespace OpenApiExtended
             count = refs.Count;
             return refs;
         }
-
         public static IList<OpenApiMediaType> GetResponsesContent(this OpenApiResponse openApiResponse)
         {
             if (openApiResponse == null)
@@ -1356,7 +1349,6 @@ namespace OpenApiExtended
             count = mediaTypes.Count;
             return mediaTypes;
         }
-
         public static IList<OpenApiSchema> GetResponsesSchema(this OpenApiResponse openApiResponse)
         {
             if (openApiResponse == null)
@@ -1747,7 +1739,7 @@ namespace OpenApiExtended
             }
             return openApiSchema.Reference != null;
         }
-        public static bool HasEmptyReference(this OpenApiSchema openApiSchema)
+        public static bool IsEmptyObject(this OpenApiSchema openApiSchema)
         {
             if (openApiSchema == null)
             {
@@ -1870,7 +1862,7 @@ namespace OpenApiExtended
                     newPath.AddRange(path);
                     var type = openApiSchema.Type.ToLower();
                     var format = string.IsNullOrEmpty(openApiSchema.Format) ? "" : Constants.ArrayItemFormatSeparator + openApiSchema.Format.ToLower();
-                    newPath.Add($"->[{type}{format}]");
+                    newPath.Add($"{Constants.ArrayItemIndicator}{type}{format}]");
                     list.Add(newPath, openApiSchema);
                 }
             }
@@ -1903,7 +1895,7 @@ namespace OpenApiExtended
             {
                 var key = member.Key.Count == 0 ? Constants.RootIndicator : Constants.RootIndicator + "." + member.Key.Aggregate((a, b) =>
                       $"{a}.{b}");
-                key = key.Contains(".->[") ? key.Replace(".->[", ".[") : key;
+                key = key.Contains(Constants.ArrayItemIndicator) ? key.Replace(Constants.ArrayItemIndicator, "[") : key;
                 action(key, member.Value);
             }
         }
@@ -1942,11 +1934,11 @@ namespace OpenApiExtended
                 item.Value = member.Value;
                 item.ParentType = parents == null ? null : parents.Length == 0
                     ? members.Values.First().Type
-                    : name != null && name.StartsWith("->[")
+                    : name != null && name.StartsWith(Constants.ArrayItemIndicator)
                         ? "array"
                         : result.First(x => x.PathKey == x.ParentKey).Type;
                 item.IsArray = member.Value.IsArray();
-                item.HasEmptyReference = member.Value.HasEmptyReference();
+                item.IsEmptyObject = member.Value.IsEmptyObject();
                 item.IsObject = member.Value.IsObject();
                 item.HasReference = member.Value.HasReference();
                 item.ReferenceId = member.Value.HasReference() ? member.Value.Reference.Id : null;
@@ -2014,7 +2006,7 @@ namespace OpenApiExtended
                         }
                         else
                         {
-                            var refData = member.HasEmptyReference ? "" : GetReplacementKey(member.PathKey);
+                            var refData = member.IsEmptyObject ? "" : GetReplacementKey(member.PathKey);
                             var data = $"\"{member.Name}\": {{ {refData} }}, {GetReplacementKey(member.ParentKey)}";
                             result = result.ReplaceFirst(GetReplacementKey(member.ParentKey), data);
                         }
@@ -2097,7 +2089,7 @@ namespace OpenApiExtended
 
                     if (member.IsObject)
                     {
-                        var isEmptyObject = member.HasEmptyReference;
+                        var isEmptyObject = member.IsEmptyObject;
                         var hasArrayParent = members.Any(x => x.PathKey == member.PathKey && x.IsArray);
                         if (!hasArrayParent)
                         {
