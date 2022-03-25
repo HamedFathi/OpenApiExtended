@@ -9,7 +9,7 @@ using System.Text.RegularExpressions;
 
 namespace OpenApiExtended
 {
-    internal static class Helper
+    internal static class Extensions
     {
         private static readonly Pluralizer pluralizer = new Pluralizer();
 

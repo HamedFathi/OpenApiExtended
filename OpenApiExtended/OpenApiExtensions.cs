@@ -71,7 +71,6 @@ namespace OpenApiExtended
             }
             return openApiDocument.Info.Description;
         }
-        // ---------------------------------------------------------------------------------------------------------------------------------------------------------------
         public static IList<OpenApiSecurityRequirement> GetSecurityRequirements(this OpenApiDocument openApiDocument)
         {
             if (openApiDocument == null)
@@ -109,7 +108,6 @@ namespace OpenApiExtended
             count = result.Count;
             return result;
         }
-        // ---------------------------------------------------------------------------------------------------------------------------------------------------------------
         public static OpenApiPaths GetPaths(this OpenApiDocument openApiDocument, out int count)
         {
             if (openApiDocument == null)
@@ -158,7 +156,6 @@ namespace OpenApiExtended
             }
             return path;
         }
-        // ---------------------------------------------------------------------------------------------------------------------------------------------------------------
         public static IList<OpenApiOperation> GetOperations(this OpenApiPaths pathItems)
         {
             if (pathItems == null)
@@ -215,7 +212,6 @@ namespace OpenApiExtended
             count = result.Count;
             return result;
         }
-        // ---------------------------------------------------------------------------------------------------------------------------------------------------------------
         public static bool HasParameter(this OpenApiOperation openApiOperation)
         {
             if (openApiOperation == null)
@@ -313,7 +309,6 @@ namespace OpenApiExtended
             count = parameters.Count;
             return parameters;
         }
-        // ---------------------------------------------------------------------------------------------------------------------------------------------------------------
         public static IList<OpenApiParameter> GetParameters(this IEnumerable<OpenApiOperation> openApiOperations)
         {
             if (openApiOperations == null)
@@ -363,7 +358,6 @@ namespace OpenApiExtended
             count = parameters.Count;
             return parameters;
         }
-        // ---------------------------------------------------------------------------------------------------------------------------------------------------------------
         public static bool HasRequestBody(this OpenApiOperation openApiOperation)
         {
             if (openApiOperation == null)
@@ -391,7 +385,6 @@ namespace OpenApiExtended
             var requestBody = openApiOperations.Where(HasRequestBody).Select(x => x.RequestBody).ToList();
             return requestBody;
         }
-        // ---------------------------------------------------------------------------------------------------------------------------------------------------------------
         public static IList<OpenApiMediaType> GetRequestBodyContent(this OpenApiOperation openApiOperation)
         {
             if (openApiOperation == null)
@@ -498,17 +491,15 @@ namespace OpenApiExtended
             count = apiMediaTypes.Count;
             return apiMediaTypes;
         }
-        // ---------------------------------------------------------------------------------------------------------------------------------------------------------------
         private static object ConvertToOpenApiMimeType<T>(string mimeType) where T : Enum
         {
-            var result = Helper.GetEnumInfo<T>().FirstOrDefault(x => x.Description == mimeType);
+            var result = Extensions.GetEnumInfo<T>().FirstOrDefault(x => x.Description == mimeType);
             if (result == null)
             {
                 return null;
             }
             return (T)Enum.Parse(typeof(T), result.Value, true);
         }
-        // ---------------------------------------------------------------------------------------------------------------------------------------------------------------
         public static IList<OpenApiSchema> GetRequestBodySchema(this OpenApiOperation openApiOperation)
         {
             if (openApiOperation == null)
@@ -626,7 +617,6 @@ namespace OpenApiExtended
             count = schemas.Count;
             return schemas;
         }
-        // ---------------------------------------------------------------------------------------------------------------------------------------------------------------
         public static IList<OpenApiSchema> GetRequestBodySchema(this OpenApiRequestBody openApiRequestBody)
         {
             if (openApiRequestBody == null)
@@ -714,7 +704,6 @@ namespace OpenApiExtended
             var schemas = apiMediaTypes.Select(x => x.Schema).ToList();
             return schemas;
         }
-        // ---------------------------------------------------------------------------------------------------------------------------------------------------------------
         public static IList<OpenApiMediaType> GetResponsesContent(this OpenApiRequestBody openApiRequestBody)
         {
             if (openApiRequestBody == null)
@@ -793,7 +782,6 @@ namespace OpenApiExtended
             count = apiMediaTypes.Count;
             return apiMediaTypes;
         }
-        // ---------------------------------------------------------------------------------------------------------------------------------------------------------------
         public static IList<OpenApiReference> GetRequestBodySchemaReference(this OpenApiOperation openApiOperation)
         {
             if (openApiOperation == null)
@@ -908,7 +896,7 @@ namespace OpenApiExtended
             count = refs?.Count ?? 0;
             return refs;
         }
-        // ---------------------------------------------------------------------------------------------------------------------------------------------------------------
+
         public static IList<OpenApiReference> GetRequestBodySchemaReference(this OpenApiRequestBody openApiRequestBody)
         {
             if (openApiRequestBody == null)
@@ -996,7 +984,7 @@ namespace OpenApiExtended
             count = refs.Count;
             return refs;
         }
-        // ---------------------------------------------------------------------------------------------------------------------------------------------------------------
+
         public static bool HasResponse(this OpenApiOperation openApiOperation)
         {
             if (openApiOperation == null)
@@ -1047,7 +1035,7 @@ namespace OpenApiExtended
             count = responses.Count;
             return responses;
         }
-        // ---------------------------------------------------------------------------------------------------------------------------------------------------------------
+
         public static IList<OpenApiResponse> GetResponses(this OpenApiOperation openApiOperation, Func<string, bool> predicate)
         {
             if (openApiOperation == null)
@@ -1090,7 +1078,7 @@ namespace OpenApiExtended
             count = responses.Count;
             return responses;
         }
-        // ---------------------------------------------------------------------------------------------------------------------------------------------------------------
+
         public static IList<OpenApiMediaType> GetResponsesContent(this OpenApiOperation openApiOperation)
         {
             if (openApiOperation == null)
@@ -1158,7 +1146,7 @@ namespace OpenApiExtended
             count = content.Count;
             return content;
         }
-        // ---------------------------------------------------------------------------------------------------------------------------------------------------------------
+
         public static IList<OpenApiSchema> GetResponsesSchema(this OpenApiOperation openApiOperation)
         {
             if (openApiOperation == null)
@@ -1226,7 +1214,7 @@ namespace OpenApiExtended
             count = schemas.Count;
             return schemas;
         }
-        // ---------------------------------------------------------------------------------------------------------------------------------------------------------------
+
         public static IList<OpenApiReference> GetResponsesSchemaReference(this OpenApiResponse openApiResponse)
         {
             if (openApiResponse == null)
@@ -1296,7 +1284,7 @@ namespace OpenApiExtended
             count = refs.Count;
             return refs;
         }
-        // ---------------------------------------------------------------------------------------------------------------------------------------------------------------
+
         public static IList<OpenApiMediaType> GetResponsesContent(this OpenApiResponse openApiResponse)
         {
             if (openApiResponse == null)
@@ -1368,7 +1356,7 @@ namespace OpenApiExtended
             count = mediaTypes.Count;
             return mediaTypes;
         }
-        // ---------------------------------------------------------------------------------------------------------------------------------------------------------------
+
         public static IList<OpenApiSchema> GetResponsesSchema(this OpenApiResponse openApiResponse)
         {
             if (openApiResponse == null)
@@ -1440,7 +1428,6 @@ namespace OpenApiExtended
             count = schemas.Count;
             return schemas;
         }
-        // ---------------------------------------------------------------------------------------------------------------------------------------------------------------
         public static IList<OpenApiReference> GetResponsesSchemaReference(this OpenApiOperation openApiOperation)
         {
             if (openApiOperation == null)
@@ -1510,7 +1497,6 @@ namespace OpenApiExtended
             count = refs.Count;
             return refs;
         }
-        // ---------------------------------------------------------------------------------------------------------------------------------------------------------------
         public static IList<string> GetPathsKeys(this OpenApiDocument openApiDocument)
         {
             if (openApiDocument == null)
@@ -1656,7 +1642,6 @@ namespace OpenApiExtended
 
             return count == 1 ? path : (count == 2 ? operation : (count == 3 ? response : null));
         }
-        // ---------------------------------------------------------------------------------------------------------------------------------------------------------------
         public static IList<OpenApiSchema> GetComponentsSchema(this OpenApiDocument openApiDocument)
         {
             if (openApiDocument == null)
@@ -1714,7 +1699,6 @@ namespace OpenApiExtended
             count = result.Count;
             return result;
         }
-        // ---------------------------------------------------------------------------------------------------------------------------------------------------------------
         public static bool IsArray(this OpenApiSchema openApiSchema)
         {
             if (openApiSchema == null)
@@ -1837,7 +1821,6 @@ namespace OpenApiExtended
             }
             return openApiSchema.Required.Any(predicate);
         }
-        // ---------------------------------------------------------------------------------------------------------------------------------------------------------------
         private static IDictionary<IList<string>, OpenApiSchema> GetSchemaMembers(this OpenApiSchema openApiSchema, IList<string> path = null, string parentType = null, IDictionary<IList<string>, OpenApiSchema> list = null)
         {
             if (openApiSchema == null)
@@ -1905,7 +1888,7 @@ namespace OpenApiExtended
                 .ToDictionary(x => x.Key, y => y.Value);
             return result;
         }
-        public static void TraverseOnPaths(this OpenApiSchema openApiSchema, Action<string, OpenApiSchema> action)
+        public static void TraverseOnJsonPaths(this OpenApiSchema openApiSchema, Action<string, OpenApiSchema> action)
         {
             if (openApiSchema == null)
             {
@@ -1920,6 +1903,7 @@ namespace OpenApiExtended
             {
                 var key = member.Key.Count == 0 ? Constants.RootIndicator : Constants.RootIndicator + "." + member.Key.Aggregate((a, b) =>
                       $"{a}.{b}");
+                key = key.Contains(".->[") ? key.Replace(".->[", ".[") : key;
                 action(key, member.Value);
             }
         }
@@ -1977,7 +1961,6 @@ namespace OpenApiExtended
             }
             return result;
         }
-        // ---------------------------------------------------------------------------------------------------------------------------------------------------------------
         public static string ToJson(this OpenApiSchema openApiSchema, Func<OpenApiMemberInfo, object> dataProvider = null)
         {
             if (openApiSchema == null)
@@ -2175,7 +2158,7 @@ namespace OpenApiExtended
             }
             string GetTypeScriptMember(OpenApiMemberInfo member, string type = null, string simpleArrayName = null)
             {
-                var tsType = GetTypeScriptType(GetOpenApiValueType(member.Type, member.Format));
+                var tsType = OpenApiUtility.GetTypeScriptType(OpenApiUtility.GetOpenApiValueType(member.Type, member.Format));
                 var interfaceType = string.IsNullOrEmpty(type) ? tsType : type;
                 if (member.IsArrayItem && string.IsNullOrEmpty(simpleArrayName))
                 {
@@ -2225,93 +2208,11 @@ namespace OpenApiExtended
                 return code.Contains("export interface") || code.Contains("export default interface");
             }
         }
-        public static OpenApiValueType GetOpenApiValueType(string type, string format)
-        {
-            if (string.IsNullOrEmpty(type))
-            {
-                throw new ArgumentNullException(nameof(type));
-            }
-            if (!string.IsNullOrEmpty(format))
-            {
-                if (format.ToLower() == "int32") return OpenApiValueType.Int32;
-                if (format.ToLower() == "int64") return OpenApiValueType.Int64;
-                if (format.ToLower() == "float") return OpenApiValueType.Float;
-                if (format.ToLower() == "double") return OpenApiValueType.Double;
-                if (format.ToLower() == "date") return OpenApiValueType.Date;
-                if (format.ToLower() == "date-time") return OpenApiValueType.DateTime;
-                if (format.ToLower() == "password") return OpenApiValueType.Password;
-                if (format.ToLower() == "byte") return OpenApiValueType.Byte;
-                if (format.ToLower() == "binary") return OpenApiValueType.Binary;
-                if (format.ToLower() == "email") return OpenApiValueType.Email;
-                if (format.ToLower() == "uuid") return OpenApiValueType.Uuid;
-                if (format.ToLower() == "uri") return OpenApiValueType.Uri;
-                if (format.ToLower() == "hostname") return OpenApiValueType.HostName;
-                if (format.ToLower() == "ipv4") return OpenApiValueType.IPv4;
-                if (format.ToLower() == "ipv6") return OpenApiValueType.IPv6;
-
-                return OpenApiValueType.Unknown;
-            }
-            if (type.ToLower() == "number") return OpenApiValueType.Number;
-            if (type.ToLower() == "integer") return OpenApiValueType.Integer;
-            if (type.ToLower() == "string") return OpenApiValueType.String;
-            if (type.ToLower() == "boolean") return OpenApiValueType.Boolean;
-            if (type.ToLower() == "null") return OpenApiValueType.Null;
-            if (type.ToLower() == "array") return OpenApiValueType.Array;
-            if (type.ToLower() == "object") return OpenApiValueType.Object;
-
-            return OpenApiValueType.Unknown;
-
-        }
-        public static string GetTypeScriptType(OpenApiValueType openApiValueType)
-        {
-            switch (openApiValueType)
-            {
-                case OpenApiValueType.Binary:
-                case OpenApiValueType.Unknown:
-                    return "any";
-
-                case OpenApiValueType.Boolean:
-                    return "boolean";
-
-                case OpenApiValueType.Integer:
-                case OpenApiValueType.Int32:
-                case OpenApiValueType.Int64:
-                case OpenApiValueType.Number:
-                case OpenApiValueType.Float:
-                case OpenApiValueType.Double:
-                    return "number";
-
-                case OpenApiValueType.Date:
-                case OpenApiValueType.DateTime:
-                    return "Date";
-
-                case OpenApiValueType.String:
-                case OpenApiValueType.Password:
-                case OpenApiValueType.Byte:
-                case OpenApiValueType.Email:
-                case OpenApiValueType.Uuid:
-                case OpenApiValueType.Uri:
-                case OpenApiValueType.HostName:
-                case OpenApiValueType.IPv4:
-                case OpenApiValueType.IPv6:
-                    return "string";
-
-                case OpenApiValueType.Null:
-                    return "null";
-                case OpenApiValueType.Array:
-                    return "any[]";
-                case OpenApiValueType.Object:
-                    return "any";
-                default:
-                    throw new ArgumentOutOfRangeException(nameof(openApiValueType), openApiValueType, null);
-            }
-
-        }
         private static object GetOpenApiSchemaDefaultValue(this OpenApiSchema openApiSchema)
         {
             if (openApiSchema.IsPrimitive())
             {
-                var info = GetOpenApiValueType(openApiSchema.Type, openApiSchema.Format);
+                var info = OpenApiUtility.GetOpenApiValueType(openApiSchema.Type, openApiSchema.Format);
                 switch (info)
                 {
                     case OpenApiValueType.Boolean:
@@ -2357,25 +2258,8 @@ namespace OpenApiExtended
                 }
             }
             return null;
-            // ---------------------------------------------------------------------------------------------------------------------------------------------------------------
+
         }
-        public static IList<string> GetTypeScriptAllTypes(this string typescriptSource)
-        {
-            var hashSet = new HashSet<string>();
-            var matches = Regex.Matches(typescriptSource, ":(.+);");
-            foreach (Match match in matches)
-            {
-                var group = match.Groups[1].Value;
-                var parts =
-                    group.Split(' ')
-                        .Where(x => x.Trim() != string.Empty && x.Trim() != "|")
-                        .Select(x => x.TrimEnd('?'))
-                        .ToList();
-                hashSet.AddRange(parts);
-            }
-            return hashSet.ToList();
-        }
-        // ---------------------------------------------------------------------------------------------------------------------------------------------------------------
         public static void Traverse(this OpenApiDocument openApiDocument, Action<string, OpenApiMemberType, object> action)
         {
             if (openApiDocument == null)
@@ -2462,6 +2346,6 @@ namespace OpenApiExtended
         {
             return obj is OpenApiResponse;
         }
-        // ---------------------------------------------------------------------------------------------------------------------------------------------------------------
+
     }
 }
