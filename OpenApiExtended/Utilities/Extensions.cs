@@ -13,6 +13,21 @@ namespace OpenApiExtended
     {
         private static readonly Pluralizer pluralizer = new Pluralizer();
 
+        internal static IEnumerable<string> Contains(this IEnumerable<string> source, IList<string> items)
+        {
+            if (source == null || items == null) return null;
+            var result = new List<string>();
+            foreach (var data in source)
+            {
+                foreach (var item in items)
+                {
+                    var status = data.Contains(item);
+                    if (status) result.Add(item);
+                }
+            }
+            return result;
+        }
+
         internal static string Pluralize(this string word)
         {
             return pluralizer.Pluralize(word);

@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 using System.Text.RegularExpressions;
 using Microsoft.OpenApi.Models;
@@ -2162,42 +2163,100 @@ namespace OpenApiExtended
                 return result;
             }
         }
-        public static IList<string> ToTypeScriptSources(this OpenApiSchema openApiSchema, string rootName = "Root",
+        public static IDictionary<string, string> ToTypeScriptSources(this OpenApiSchema openApiSchema, string rootName = "Root",
             TypeScriptConfiguration typeScriptConfiguration = null)
         {
-            var result = new List<string>();
+            if (openApiSchema == null) throw new ArgumentNullException(nameof(openApiSchema));
+
+            var result = new Dictionary<string, string>();
             var ts = openApiSchema.ToTypeScript(rootName, typeScriptConfiguration);
+            var tsTypes = GetTypes(ts);
             if (string.IsNullOrEmpty(ts))
             {
-                return result;
+                return new Dictionary<string, string>();
             }
-            var hasMultiResult = IsInterfaceLine(ts);
+            var indexFile = new StringBuilder();
+            var imports = new StringBuilder();
+            var hasMultiResult = IsInterfaceLine(ts, out _);
+            var interfaceName = string.Empty;
             if (hasMultiResult)
             {
                 var localList = new List<string>();
                 var lines = ts.Split('\n');
                 foreach (var line in lines)
                 {
-                    if (IsInterfaceLine(line))
+                    var status = IsInterfaceLine(line, out string name);
+                    var isDefault = IsExportDefault(line);
+                    if (status)
                     {
                         localList.Clear();
                     }
+
+                    if (!string.IsNullOrWhiteSpace(name))
+                    {
+                        interfaceName = name;
+                        var model = isDefault ? "*" : $"{{ {name} }}";
+                        indexFile.AppendLine($"export {model} from './{name}';");
+                    }
+
                     localList.Add(line);
+
+                    var importsData = tsTypes.Contains(GetTypes(line)).ToList();
+                    if (importsData.Any())
+                    {
+                        foreach (var data in importsData)
+                        {
+                            // Ignores these types for importing.
+                            if (char.IsLower(data[0]) || data == "Date") continue;
+
+                            var model = isDefault ? "*" : $"{{ {data} }}";
+                            imports.AppendLine($"import {model} from './{data}';");
+                        }
+                    }
+
                     if (line.Trim() == "}")
                     {
-                        result.Add(localList.Aggregate((a, b) => a + '\n' + b).Trim());
+                        var data = imports.Length > 0 ? imports.ToString().Trim() + "\n" : string.Empty;
+                        result.Add(interfaceName, data + localList.Aggregate((a, b) => a + '\n' + b).Trim());
+                        imports.Clear();
                     }
+                }
+
+                var index = indexFile.ToString();
+                if (!string.IsNullOrWhiteSpace(index))
+                {
+                    result.Add("index.ts", index);
                 }
             }
             else
             {
-                result.Add(ts);
+                result.Add(string.Empty, ts);
             }
+
             return result;
 
-            bool IsInterfaceLine(string code)
+            bool IsInterfaceLine(string code, out string name)
             {
-                return code.Contains("export interface") || code.Contains("export default interface");
+                name = string.Empty;
+                var status = code.Contains("export interface") || code.Contains("export default interface");
+                if (status)
+                {
+                    var regex = new Regex(@"\s*export\s*(default)?\s*interface\s*(.+)\s*\{\s*");
+                    var match = regex.Match(code);
+                    name = match.Groups[2].Value.Trim();
+                }
+                return status;
+            }
+            bool IsExportDefault(string code)
+            {
+                return code.Contains("export default interface");
+            }
+
+            IList<string> GetTypes(string code)
+            {
+                return OpenApiUtility.GetAllTypeScriptTypes(code).Select(x => x
+                    .Replace("[]", "")
+                ).ToList();
             }
         }
         private static object GetOpenApiSchemaDefaultValue(this OpenApiSchema openApiSchema)
@@ -2338,6 +2397,5 @@ namespace OpenApiExtended
         {
             return obj is OpenApiResponse;
         }
-
     }
 }
