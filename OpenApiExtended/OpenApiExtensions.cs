@@ -83,6 +83,38 @@ namespace OpenApiExtended
             }
             return openApiDocument.Info.Description;
         }
+        public static IList<OpenApiSecurityScheme> GetOpenApiSecuritySchemes(this OpenApiDocument openApiDocument)
+        {
+            var result = new List<OpenApiSecurityScheme>();
+            foreach (var securityRequirement in openApiDocument.SecurityRequirements)
+            {
+                foreach (var req in securityRequirement)
+                {
+                    if (req.Key != null)
+                    {
+                        result.Add(req.Key);
+                    }
+                }
+            }
+            return result;
+        }
+        public static IList<OpenApiSecurityScheme> GetOpenApiSecuritySchemes(this OpenApiDocument openApiDocument, Func<OpenApiSecurityScheme, bool> predicate)
+        {
+            var result = new List<OpenApiSecurityScheme>();
+            foreach (var securityRequirement in openApiDocument.SecurityRequirements)
+            {
+                foreach (var req in securityRequirement)
+                {
+                    if (req.Key != null)
+                    {
+                        var status = predicate(req.Key);
+                        if (status)
+                            result.Add(req.Key);
+                    }
+                }
+            }
+            return result;
+        }
         public static IList<OpenApiSecurityRequirement> GetSecurityRequirements(this OpenApiDocument openApiDocument)
         {
             if (openApiDocument == null)
