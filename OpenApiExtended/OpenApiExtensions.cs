@@ -1,11 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Text;
 using System.Text.RegularExpressions;
 using Microsoft.OpenApi.Models;
+using Microsoft.OpenApi.Readers;
 
 // ReSharper disable UnusedMember.Global
 
@@ -13,6 +15,14 @@ namespace OpenApiExtended
 {
     public static class OpenApiExtensions
     {
+        public static OpenApiDocument ToOpenApiDocument(this string openApiDocumentText, out OpenApiDiagnostic diagnostic)
+        {
+            if (string.IsNullOrWhiteSpace(openApiDocumentText))
+                throw new ArgumentException("Value cannot be null or whitespace.", nameof(openApiDocumentText));
+
+            var openApiDocument = new OpenApiStreamReader().Read(new MemoryStream(Encoding.UTF8.GetBytes(openApiDocumentText)), out diagnostic);
+            return openApiDocument;
+        }
         public static OpenApiInfo GetInfo(this OpenApiDocument openApiDocument)
         {
             if (openApiDocument == null)
