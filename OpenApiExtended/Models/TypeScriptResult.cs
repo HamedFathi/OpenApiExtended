@@ -1,6 +1,6 @@
 ﻿using System.Collections.Generic;
 
-namespace OpenApiExtended.Models;
+namespace OpenApiExtended;
 
 public class TypeScriptResult
 {

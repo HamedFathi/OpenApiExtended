@@ -1,7 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.Diagnostics;
 
-namespace OpenApiExtended.Models
+namespace OpenApiExtended
 {
     public class TypeScriptInfo
     {

@@ -1,4 +1,4 @@
-﻿namespace OpenApiExtended.Models;
+﻿namespace OpenApiExtended;
 
 public class TypeScriptData
 {
