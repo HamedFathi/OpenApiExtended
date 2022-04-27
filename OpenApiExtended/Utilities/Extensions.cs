@@ -11,7 +11,7 @@ namespace OpenApiExtended
 {
     internal static class Extensions
     {
-        private static readonly Pluralizer pluralizer = new Pluralizer();
+        private static readonly Pluralizer PluralizerService = new Pluralizer();
 
         internal static IEnumerable<string> Contains(this IEnumerable<string> source, IList<string> items)
         {
@@ -30,7 +30,7 @@ namespace OpenApiExtended
 
         internal static string Pluralize(this string word)
         {
-            return pluralizer.Pluralize(word);
+            return PluralizerService.Pluralize(word);
         }
 
         internal static bool AddRange<T>(this HashSet<T> @this, IEnumerable<T> items)
@@ -45,7 +45,7 @@ namespace OpenApiExtended
         }
         internal static string Singularize(this string word)
         {
-            return pluralizer.Singularize(word);
+            return PluralizerService.Singularize(word);
         }
 
         internal static IEnumerable<T> DistinctBy<T, TKey>(this IEnumerable<T> items, Func<T, TKey> property)
@@ -180,6 +180,13 @@ namespace OpenApiExtended
                     ?.GetCustomAttribute<DescriptionAttribute>()
                     ?.Description
                 ?? (replaceNullWithEnumName ? null : @enum.ToString());
+        }
+
+        public static string FirstCharToUpper(this string input)
+        {
+            if (string.IsNullOrEmpty(input))
+                return input;
+            return input.First().ToString().ToUpper() + input.Substring(1);
         }
     }
 }

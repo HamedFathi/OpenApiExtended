@@ -2247,8 +2247,7 @@ namespace OpenApiExtended
                 prefix = string.IsNullOrEmpty(prefix) ? string.Empty : prefix;
 
                 var result = name.RemoveDuplicateWhiteSpaces().Trim();
-                var info = CultureInfo.InvariantCulture.TextInfo;
-                result = info.ToTitleCase(result).Replace(" ", string.Empty);
+                result = result.FirstCharToUpper().Replace(" ", string.Empty);
                 result = singular ? result.Singularize() : result;
                 result = prefix + result;
                 result = result.EndsWith("id")
