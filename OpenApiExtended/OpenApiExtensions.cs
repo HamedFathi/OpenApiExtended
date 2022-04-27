@@ -541,7 +541,7 @@ namespace OpenApiExtended
             {
                 return null;
             }
-            return (T)Enum.Parse(typeof(T), result.Value, true);
+            return result.Item;
         }
         public static IList<OpenApiSchema> GetRequestBodySchema(this OpenApiOperation openApiOperation)
         {

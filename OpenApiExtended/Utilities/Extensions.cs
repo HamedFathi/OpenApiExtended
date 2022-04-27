@@ -52,21 +52,31 @@ namespace OpenApiExtended
         {
             return items.GroupBy(property).Select(x => x.First());
         }
-        internal static IEnumerable<EnumMemberInfo> GetEnumInfo<T>() where T : Enum
+        internal static IEnumerable<EnumMemberInfo<T>> GetEnumInfo<T>() where T : Enum
         {
+            var result = new List<EnumMemberInfo<T>>();
             var names = Enum.GetNames(typeof(T));
-            var values = Enum.GetValues(typeof(T));
-            var descriptions = typeof(T).GetMembers()
-                 .SelectMany(member => member.GetCustomAttributes(typeof(DescriptionAttribute), true).Cast<DescriptionAttribute>())
-                 .Select(x => x.Description)
-                 .ToList();
-
-            return names.Select((t, i) => new EnumMemberInfo
+            foreach (var name in names)
             {
-                Name = t,
-                Value = values.GetValue(i)?.ToString(),
-                Description = descriptions[i]
-            });
+                var parsed = Enum.Parse(typeof(T), name);
+                var item = (T)parsed;
+                var value = Convert.ToInt32(parsed);
+                var description = item.GetDescription(true);
+                result.Add(new EnumMemberInfo<T>
+                {
+                    Name = name,
+                    Value = value,
+                    Description = description,
+                    Item = item
+                });
+            }
+            return result;
+        }
+
+        internal static IEnumerable<EnumMemberInfo<T>> GetEnumInfo<T>(Func<EnumMemberInfo<T>, bool> predicate) where T : Enum
+        {
+            var result = GetEnumInfo<T>().Where(predicate);
+            return result;
         }
 
         internal static void AppendLine(this StringBuilder builder, string value, int counter, bool tab = true)
