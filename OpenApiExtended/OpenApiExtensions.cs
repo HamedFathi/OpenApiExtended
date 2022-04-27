@@ -1374,7 +1374,7 @@ namespace OpenApiExtended
             }
 
             var mediaTypes = openApiResponse.Content
-                .Where(x => mimeType((OpenApiMimeType)Enum.Parse(typeof(OpenApiMimeType), x.Key)))
+                .Where(x => mimeType((OpenApiMimeType)ConvertToOpenApiMimeType<OpenApiMimeType>(x.Key)))
                 .Select(x => x.Value)
                 .ToList();
             return mediaTypes;
@@ -1386,7 +1386,7 @@ namespace OpenApiExtended
                 throw new ArgumentNullException(nameof(openApiResponse));
             }
             var mediaTypes = openApiResponse.Content
-                .Where(x => mimeType((OpenApiMimeType)Enum.Parse(typeof(OpenApiMimeType), x.Key)))
+                .Where(x => mimeType((OpenApiMimeType)ConvertToOpenApiMimeType<OpenApiMimeType>(x.Key)))
                 .Select(x => x.Value)
                 .ToList();
             count = mediaTypes.Count;
@@ -1970,6 +1970,7 @@ namespace OpenApiExtended
             {
                 var name = member.Key.Count == 0 ? null : member.Key.Last();
                 var parents = member.Key.Count == 0 ? null : member.Key.Count == 1 ? Array.Empty<string>() : member.Key.SkipLast(1).ToArray();
+                // ReSharper disable once UseObjectOrCollectionInitializer
                 var item = new OpenApiMemberInfo();
                 item.Path = member.Key.Count == 0 ? null : member.Key.ToArray();
                 item.Name = name;
