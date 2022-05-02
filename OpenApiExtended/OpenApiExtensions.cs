@@ -2607,7 +2607,7 @@ namespace OpenApiExtended
         {
             if (typeScriptData == null) return null;
 
-            var tsData = typeScriptData.ToList();
+            var tsData = typeScriptData.DistinctBy(x => x.Source).ToList();
             if (!tsData.Any()) return null;
 
             var tsDataList = new List<TypeScriptData>();
