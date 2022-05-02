@@ -2571,12 +2571,13 @@ namespace OpenApiExtended
         {
             return obj is OpenApiResponse;
         }
-        public static string ToSourceCode(this TypeScriptResult typeScriptResult)
+        public static string ToSourceCode(this TypeScriptResult typeScriptResult, bool skipImports = false)
         {
             if (typeScriptResult == null)
                 return null;
 
             var text = typeScriptResult.TypeScriptData
+                .OrderBy(x => x.TypeScriptInfo.Name)
                 .Select(x => x.Source)
                 .Aggregate((a, b) => a + Environment.NewLine + b);
 
@@ -2595,12 +2596,31 @@ namespace OpenApiExtended
                 }
             }
 
-            var imp = imports.Count == 0
+            var imp = skipImports || imports.Count == 0
                 ? string.Empty
                 : imports.Distinct().OrderBy(x => x).Aggregate((a, b) => a + Environment.NewLine + b) + Environment.NewLine;
 
             var result = (imp + Environment.NewLine + sb).Trim();
             return result;
         }
+        public static string ToSourceCode(this IEnumerable<TypeScriptData> typeScriptData, bool skipImports = false)
+        {
+            if (typeScriptData == null) return null;
+
+            var tsData = typeScriptData.ToList();
+            if (!tsData.Any()) return null;
+
+            var tsDataList = new List<TypeScriptData>();
+            tsDataList.AddRange(tsData);
+
+            var typeScriptResult = new TypeScriptResult
+            {
+                Index = string.Empty,
+                TypeScriptData = tsDataList
+            };
+
+            return typeScriptResult.ToSourceCode(skipImports);
+        }
+
     }
 }
