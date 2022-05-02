@@ -31,10 +31,6 @@ namespace OpenApiExtended
         }
         public static OpenApiValueType GetOpenApiValueType(string type, string format)
         {
-            if (string.IsNullOrEmpty(type))
-            {
-                throw new ArgumentNullException(nameof(type));
-            }
             if (!string.IsNullOrEmpty(format))
             {
                 if (format.ToLower() == "int32") return OpenApiValueType.Int32;
@@ -52,16 +48,18 @@ namespace OpenApiExtended
                 if (format.ToLower() == "hostname") return OpenApiValueType.HostName;
                 if (format.ToLower() == "ipv4") return OpenApiValueType.IPv4;
                 if (format.ToLower() == "ipv6") return OpenApiValueType.IPv6;
-
-                return OpenApiValueType.Unknown;
             }
-            if (type.ToLower() == "number") return OpenApiValueType.Number;
-            if (type.ToLower() == "integer") return OpenApiValueType.Integer;
-            if (type.ToLower() == "string") return OpenApiValueType.String;
-            if (type.ToLower() == "boolean") return OpenApiValueType.Boolean;
-            if (type.ToLower() == "null") return OpenApiValueType.Null;
-            if (type.ToLower() == "array") return OpenApiValueType.Array;
-            if (type.ToLower() == "object") return OpenApiValueType.Object;
+
+            if (!string.IsNullOrEmpty(type))
+            {
+                if (type.ToLower() == "number") return OpenApiValueType.Number;
+                if (type.ToLower() == "integer") return OpenApiValueType.Integer;
+                if (type.ToLower() == "string") return OpenApiValueType.String;
+                if (type.ToLower() == "boolean") return OpenApiValueType.Boolean;
+                if (type.ToLower() == "null") return OpenApiValueType.Null;
+                if (type.ToLower() == "array") return OpenApiValueType.Array;
+                if (type.ToLower() == "object") return OpenApiValueType.Object;
+            }
 
             return OpenApiValueType.Unknown;
         }
