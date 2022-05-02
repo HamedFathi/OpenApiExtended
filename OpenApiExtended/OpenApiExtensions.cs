@@ -2274,6 +2274,8 @@ namespace OpenApiExtended
         {
             if (openApiSchema == null) throw new ArgumentNullException(nameof(openApiSchema));
 
+            rootName = string.IsNullOrEmpty(rootName) ? "ROOT_NAME_IS_NULL" : rootName;
+
             var ts = openApiSchema.GetTypeScriptData(out var tsModel, rootName, typeScriptConfiguration);
             if (string.IsNullOrEmpty(ts))
             {
@@ -2505,6 +2507,37 @@ namespace OpenApiExtended
         public static bool IsOpenApiResponse(this object obj)
         {
             return obj is OpenApiResponse;
+        }
+        public static string ToSourceCode(this TypeScriptResult typeScriptResult)
+        {
+            if (typeScriptResult == null)
+                return null;
+
+            var text = typeScriptResult.TypeScriptData
+                .Select(x => x.Source)
+                .Aggregate((a, b) => a + Environment.NewLine + b);
+
+            var sb = new StringBuilder();
+            var lines = text.Trim().Split(new string[] { "\r\n", "\r", "\n" }, StringSplitOptions.None);
+            var imports = new List<string>();
+            foreach (var line in lines)
+            {
+                if (line.StartsWith("import") && line.EndsWith("';"))
+                {
+                    imports.Add(line);
+                }
+                else
+                {
+                    sb.AppendLine(line);
+                }
+            }
+
+            var imp = imports.Count == 0
+                ? string.Empty
+                : imports.Distinct().OrderBy(x => x).Aggregate((a, b) => a + Environment.NewLine + b) + Environment.NewLine;
+
+            var result = (imp + Environment.NewLine + sb).Trim();
+            return result;
         }
     }
 }
