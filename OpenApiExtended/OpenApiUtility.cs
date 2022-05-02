@@ -69,7 +69,7 @@ namespace OpenApiExtended
             {
                 case OpenApiValueType.Binary:
                 case OpenApiValueType.Unknown:
-                    return "any";
+                    return "unknown";
 
                 case OpenApiValueType.Boolean:
                     return "boolean";
@@ -101,10 +101,10 @@ namespace OpenApiExtended
                     return "null";
 
                 case OpenApiValueType.Array:
-                    return "any[]";
+                    return "unknown[]";
 
                 case OpenApiValueType.Object:
-                    return "any";
+                    return "object";
 
                 default:
                     throw new ArgumentOutOfRangeException(nameof(openApiValueType), openApiValueType, null);

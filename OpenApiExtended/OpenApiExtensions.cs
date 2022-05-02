@@ -1819,7 +1819,15 @@ namespace OpenApiExtended
             {
                 throw new ArgumentNullException(nameof(openApiSchema));
             }
-            return !openApiSchema.IsArray() && !openApiSchema.IsObject();
+            return !openApiSchema.IsArray() && !openApiSchema.IsObject() && (!string.IsNullOrEmpty(openApiSchema.Type) || !string.IsNullOrEmpty(openApiSchema.Format));
+        }
+        public static bool IsUnrecognizable(this OpenApiSchema openApiSchema)
+        {
+            if (openApiSchema == null)
+            {
+                throw new ArgumentNullException(nameof(openApiSchema));
+            }
+            return !openApiSchema.IsArray() && !openApiSchema.IsObject() && string.IsNullOrEmpty(openApiSchema.Type) && string.IsNullOrEmpty(openApiSchema.Format) && !openApiSchema.HasReference();
         }
         public static string GetType(this OpenApiSchema openApiSchema)
         {
@@ -2050,8 +2058,10 @@ namespace OpenApiExtended
                 item.HasReference = member.Value.HasReference();
                 item.ReferenceId = member.Value.HasReference() ? member.Value.Reference.Id : null;
                 item.IsPrimitive = member.Value.IsPrimitive();
+                item.IsUnrecognizable = member.Value.IsUnrecognizable();
                 item.Format = member.Value.Format;
                 item.Type = member.Value.Type;
+                item.TypeScriptType = OpenApiUtility.GetTypeScriptType(OpenApiUtility.GetOpenApiValueType(member.Value.Type, member.Value.Format));
                 item.Required = openApiSchema.Required.ToArray();
                 item.IsOptional = openApiSchema.Required.All(x => x != name);
                 item.IsNullable = member.Value.Nullable;
@@ -2194,7 +2204,7 @@ namespace OpenApiExtended
                 }
                 else
                 {
-                    if (member.IsPrimitive && !member.IsArrayItem)
+                    if ((member.IsPrimitive && !member.IsArrayItem) || member.IsUnrecognizable)
                     {
                         source = source.ReplaceFirst(GetReplacementKey(member.ParentKey), GetTypeScriptMember(member) + $"\r\n\t{GetReplacementKey(member.ParentKey)}");
                         var model = typeScriptInfo.SingleOrDefault(x => x.PathKey == member.ParentKey);
@@ -2209,7 +2219,8 @@ namespace OpenApiExtended
                                 {
                                     Format = member.Format,
                                     Value = member.Type,
-                                    DataType = member.Type
+                                    DataType = member.Type,
+                                    IsUnrecognizable = member.IsUnrecognizable
                                 }
                             });
                         }
@@ -2218,7 +2229,7 @@ namespace OpenApiExtended
                     if (member.IsPrimitive && member.IsArrayItem)
                     {
                         var name = members.First(x => x.PathKey == member.ParentKey && x.IsArray).Name;
-                        source = source.ReplaceFirst(GetReplacementKey(member.ParentKey), GetTypeScriptMember(member, member.Type + "[]", name) + $"\r\n\t{GetReplacementKey(member.ParentKey)}");
+                        source = source.ReplaceFirst(GetReplacementKey(member.ParentKey), GetTypeScriptMember(member, member.TypeScriptType + "[]", name) + $"\r\n\t{GetReplacementKey(member.ParentKey)}");
                     }
 
                     if (member.IsObject)
@@ -2227,9 +2238,10 @@ namespace OpenApiExtended
                         var hasArrayParent = members.Any(x => x.PathKey == member.PathKey && x.IsArray);
                         if (!hasArrayParent)
                         {
+
                             var type = isEmptyObject && typeScriptConfiguration.ReplaceEmptyObjectsWithUnknownType
                                 ? "unknown"
-                                : GetPascalName(member.Name);
+                                : GetPascalName(member.ReferenceId, prefixData);
 
                             var model = typeScriptInfo.SingleOrDefault(x => x.PathKey == member.ParentKey);
                             if (model != null)
@@ -2253,7 +2265,7 @@ namespace OpenApiExtended
                         if (!(isEmptyObject && typeScriptConfiguration.ReplaceEmptyObjectsWithUnknownType))
                         {
                             var sb = new StringBuilder();
-                            var name = GetPascalName(member.Name, prefixData);
+                            var name = GetPascalName(member.ReferenceId, prefixData);
                             sb.AppendLine($"{export} interface {name} {{");
                             sb.AppendLine($"{GetReplacementKey(member.PathKey)}", 1);
                             sb.AppendLine("}");
@@ -2272,14 +2284,14 @@ namespace OpenApiExtended
                         }
                         else
                         {
-                            var name = GetPascalName(objectInArray.Name, prefixData);
+                            var name = GetPascalName(objectInArray.ReferenceId, prefixData);
                             var type = name + "[]";
                             var model = typeScriptInfo.SingleOrDefault(x => x.PathKey == objectInArray.ParentKey);
                             if (model != null)
                             {
                                 model.Members.Add(new TypeScriptMemberInfo
                                 {
-                                    Name = member.Name,
+                                    Name = member.ReferenceId,
                                     IsOptional = objectInArray.IsOptional,
                                     IsNullable = objectInArray.IsNullable,
                                     Type = new TypeScriptMemberInfoType
@@ -2307,11 +2319,16 @@ namespace OpenApiExtended
             {
                 if (string.IsNullOrEmpty(name) || string.IsNullOrWhiteSpace(name)) return name;
 
+                var exceptions = new[]
+                {
+                    "data"
+                };
+
                 prefix = string.IsNullOrEmpty(prefix) ? string.Empty : prefix;
 
                 var result = name.RemoveDuplicateWhiteSpaces().Trim();
                 result = result.FirstCharToUpper().Replace(" ", string.Empty);
-                result = singular ? result.Singularize() : result;
+                result = singular && !exceptions.Contains(result.ToLower()) ? result.Singularize() : result;
                 result = prefix + result;
                 result = result.EndsWith("id")
                     ? result.Substring(0, result.Length - 2) + "Id"

@@ -5,6 +5,7 @@ namespace OpenApiExtended
 {
     public class OpenApiMemberInfo
     {
+        public string TypeScriptType { get; set; }
         public string Type { get; set; }
         public string Format { get; set; }
         public string[] Path { get; set; }
@@ -16,6 +17,7 @@ namespace OpenApiExtended
         public bool IsEmptyObject { get; set; }
         public bool IsObject { get; set; }
         public bool IsPrimitive { get; set; }
+        public bool IsUnrecognizable { get; set; }
         public bool IsInRoot => Parents is { Length: 0 };
         public bool IsRoot { get; set; }
         public bool IsArrayItem => Name != null && Constants.ArrayItemRegex.IsMatch(Name);
