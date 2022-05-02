@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -1033,6 +1032,70 @@ namespace OpenApiExtended
                 throw new ArgumentNullException(nameof(openApiOperation));
             }
             return openApiOperation.Responses != null && openApiOperation.Responses.Any();
+        }
+        public static bool HasContent(this OpenApiResponse openApiResponse)
+        {
+            if (openApiResponse == null)
+            {
+                throw new ArgumentNullException(nameof(openApiResponse));
+            }
+            return openApiResponse.Content != null && openApiResponse.Content.Any();
+        }
+        public static bool HasNoContent(this OpenApiResponse openApiResponse)
+        {
+            if (openApiResponse == null)
+            {
+                throw new ArgumentNullException(nameof(openApiResponse));
+            }
+            return !openApiResponse.HasContent();
+        }
+        public static bool HasReference(this OpenApiResponse openApiResponse)
+        {
+            if (openApiResponse == null)
+            {
+                throw new ArgumentNullException(nameof(openApiResponse));
+            }
+            return openApiResponse.Reference != null;
+        }
+        public static bool HasNoReference(this OpenApiResponse openApiResponse)
+        {
+            if (openApiResponse == null)
+            {
+                throw new ArgumentNullException(nameof(openApiResponse));
+            }
+            return !openApiResponse.HasReference();
+        }
+        public static bool HasContent(this OpenApiRequestBody openApiRequestBody)
+        {
+            if (openApiRequestBody == null)
+            {
+                throw new ArgumentNullException(nameof(openApiRequestBody));
+            }
+            return openApiRequestBody.Content != null && openApiRequestBody.Content.Any();
+        }
+        public static bool HasNoContent(this OpenApiRequestBody openApiRequestBody)
+        {
+            if (openApiRequestBody == null)
+            {
+                throw new ArgumentNullException(nameof(openApiRequestBody));
+            }
+            return !openApiRequestBody.HasContent();
+        }
+        public static bool HasReference(this OpenApiRequestBody openApiRequestBody)
+        {
+            if (openApiRequestBody == null)
+            {
+                throw new ArgumentNullException(nameof(openApiRequestBody));
+            }
+            return openApiRequestBody.Reference != null;
+        }
+        public static bool HasNoReference(this OpenApiRequestBody openApiRequestBody)
+        {
+            if (openApiRequestBody == null)
+            {
+                throw new ArgumentNullException(nameof(openApiRequestBody));
+            }
+            return !openApiRequestBody.HasReference();
         }
         public static OpenApiResponses GetResponses(this OpenApiOperation openApiOperation)
         {
@@ -2518,7 +2581,7 @@ namespace OpenApiExtended
                 .Aggregate((a, b) => a + Environment.NewLine + b);
 
             var sb = new StringBuilder();
-            var lines = text.Trim().Split(new string[] { "\r\n", "\r", "\n" }, StringSplitOptions.None);
+            var lines = text.Trim().Split(new[] { "\r\n", "\r", "\n" }, StringSplitOptions.None);
             var imports = new List<string>();
             foreach (var line in lines)
             {
