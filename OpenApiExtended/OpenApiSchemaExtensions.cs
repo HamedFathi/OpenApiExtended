@@ -9,8 +9,6 @@ using OpenApiExtended.Models;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
 
@@ -369,12 +367,13 @@ public static partial class OpenApiExtensions
             }
             else
             {
+                var optional = item?.Schema.GetRequired(x => x == item.Name).Any() == false ? "?" : string.Empty;
                 switch (item?.Type)
                 {
                     case "array":
                         {
                             var interfaceName = item.Name.Singularize(false).Pascalize();
-                            var replace = $"{item.Name}: {interfaceName}[]; {GetAlternativeKey(item.ParentKey)}";
+                            var replace = $"{item.Name}{optional}: {interfaceName}[]; {GetAlternativeKey(item.ParentKey)}";
                             result = result.ReplaceFirst(GetAlternativeKey(item.ParentKey), replace);
                             result += $"{GetExportBlock(interfaceName, resultKind)} {{ {GetAlternativeKey(item.Key)} }}{typeNeedsSemiColon} ";
                             break;
@@ -387,7 +386,7 @@ public static partial class OpenApiExtensions
                                 var interfaceName = IsSingularizationException(item.Name)
                                     ? item.Name.Pascalize()
                                     : item.Name.Singularize(false).Pascalize();
-                                var replace = $"{item.Name}: {interfaceName}[]; {GetAlternativeKey(item.ParentKey)}";
+                                var replace = $"{item.Name}{optional}: {interfaceName}[]; {GetAlternativeKey(item.ParentKey)}";
                                 result = result.ReplaceFirst(GetAlternativeKey(item.ParentKey), replace);
                                 result += $"{GetExportBlock(interfaceName, resultKind)} {{ {GetAlternativeKey(item.Key)} }}{typeNeedsSemiColon} ";
                             }
@@ -398,7 +397,7 @@ public static partial class OpenApiExtensions
                 if (item != null && item.Type != "array" && item.Type != "object")
                 {
                     var tsType = OpenApiUtility.GetTypeScriptType(OpenApiUtility.GetOpenApiValueType(item.Schema.Type, item.Schema.Format), useAnyType, useDateType);
-                    var replace = $"{item.Name}: {tsType}; {GetAlternativeKey(item.ParentKey)}";
+                    var replace = $"{item.Name}{optional}: {tsType}; {GetAlternativeKey(item.ParentKey)}";
                     result = result.ReplaceFirst(GetAlternativeKey(item.ParentKey), replace);
                 }
             }
@@ -599,191 +598,5 @@ public static partial class OpenApiExtensions
         return result;
     }
 
-    private static string ToFormattedCSharp(this string csharpText, bool fileScopedNamespace)
-    {
-        if (csharpText == null) throw new ArgumentNullException(nameof(csharpText));
-        if (string.IsNullOrWhiteSpace(csharpText))
-        {
-            return csharpText;
-        }
-        return csharpText.Contains("public record") ? csharpText.ToFormattedCSharpRecord(fileScopedNamespace) : csharpText.ToFormattedCSharpClass(fileScopedNamespace);
-    }
-
-    private static string ToFormattedCSharpClass(this string csharpText, bool fileScopedNamespace)
-    {
-        if (csharpText == null) throw new ArgumentNullException(nameof(csharpText));
-        if (string.IsNullOrWhiteSpace(csharpText))
-        {
-            return csharpText;
-        }
-        var result = new StringBuilder();
-        var isFirstTime = true;
-        var lines = csharpText.Trim().Split(new[] { "{ get; set; }", "{", "}", ";" }, StringSplitOptions.None).Where(x => x.Trim() != string.Empty).ToList();
-        foreach (var line in lines)
-        {
-            var newLine = line.Trim().RemoveMoreWhiteSpaces();
-            if (newLine.StartsWith("using"))
-            {
-                result.AppendLine(newLine + ";");
-            }
-            else if (newLine.StartsWith("namespace"))
-            {
-                if (fileScopedNamespace)
-                {
-                    result.AppendLine($"{newLine};");
-                }
-                else
-                {
-                    result.AppendLine(newLine);
-                    result.AppendLine("{");
-                }
-            }
-            else if (newLine.StartsWith("public class"))
-            {
-                if (!isFirstTime)
-                {
-                    result.AppendLine(fileScopedNamespace ? "}" : "    }");
-                }
-
-                result.AppendLine(fileScopedNamespace ? $"{newLine}" : $"    {newLine}");
-                result.AppendLine(fileScopedNamespace ? "{" : "    {");
-
-                isFirstTime = false;
-            }
-            else
-            {
-                result.AppendLine(fileScopedNamespace ? $"    {newLine} {{ get; set; }}" : $"        {newLine} {{ get; set; }}");
-            }
-        }
-        result.AppendLine(fileScopedNamespace ? "}" : "    }");
-        if (!fileScopedNamespace)
-            result.AppendLine("}");
-
-        return result.ToString();
-    }
-
-    private static string ToFormattedCSharpRecord(this string csharpText, bool fileScopedNamespace)
-    {
-        if (csharpText == null) throw new ArgumentNullException(nameof(csharpText));
-        if (string.IsNullOrWhiteSpace(csharpText))
-        {
-            return csharpText;
-        }
-
-        var result = new StringBuilder();
-        var isFirstTime = true;
-        var lines = csharpText.Trim().Split(new[] { "{", "}", "( ", " )", ",", ";" }, StringSplitOptions.None).Where(x => x.Trim() != string.Empty).ToList();
-        var index = 0;
-        foreach (var line in lines)
-        {
-            var newLine = line.Trim().RemoveMoreWhiteSpaces();
-            if (newLine.StartsWith("using"))
-            {
-                result.AppendLine(newLine + ";");
-            }
-            else if (newLine.StartsWith("namespace"))
-            {
-                if (fileScopedNamespace)
-                {
-                    result.AppendLine($"{newLine};");
-                }
-                else
-                {
-                    result.AppendLine(newLine);
-                    result.AppendLine("{");
-                }
-            }
-            else if (newLine.StartsWith("public record"))
-            {
-                if (!isFirstTime)
-                {
-                    result.AppendLine(fileScopedNamespace ? ");" : "    );");
-                }
-                result.AppendLine(fileScopedNamespace ? $"{newLine}(" : $"    {newLine}(");
-                isFirstTime = false;
-            }
-            else
-            {
-                var needsComma = index + 1 != lines.Count && !lines[index + 1].Trim().RemoveMoreWhiteSpaces().Contains("public record");
-                var comma = needsComma ? "," : string.Empty;
-                result.AppendLine(fileScopedNamespace ? $"    {newLine}(" : $"        {newLine}{comma}");
-            }
-            index++;
-        }
-        result.AppendLine(fileScopedNamespace ? ");" : "    );");
-        if (!fileScopedNamespace)
-            result.AppendLine("}");
-
-        return result.ToString();
-    }
-
-    private static string ToFormattedJson(this string jsonText)
-    {
-        if (jsonText == null) throw new ArgumentNullException(nameof(jsonText));
-
-        if (string.IsNullOrWhiteSpace(jsonText))
-        {
-            return jsonText;
-        }
-        jsonText = jsonText.Trim().Trim(',').Trim();
-        var parsedJson = JsonDocument.Parse(jsonText, new JsonDocumentOptions { AllowTrailingCommas = true });
-        var result = JsonSerializer.Serialize(parsedJson, new JsonSerializerOptions { WriteIndented = true });
-        return result;
-    }
-
-    private static string ToFormattedTypeScript(this string typescriptText)
-    {
-        if (typescriptText == null) throw new ArgumentNullException(nameof(typescriptText));
-        if (string.IsNullOrWhiteSpace(typescriptText))
-        {
-            return typescriptText;
-        }
-
-        var isInterfaceBased = typescriptText.Contains("export interface");
-        var result = new StringBuilder();
-        var isFirstTime = true;
-        var lines = typescriptText.Trim().Split(';', '{', '}').Where(x => x.Trim() != string.Empty).ToList();
-        foreach (var line in lines)
-        {
-            var newLine = line.Trim().RemoveMoreWhiteSpaces();
-            var hasInterfaceKeyword = newLine.Contains("export interface");
-            var hasTypeKeyword = newLine.Contains("export type");
-            if (isInterfaceBased)
-            {
-                if (hasInterfaceKeyword)
-                {
-                    if (!isFirstTime)
-                    {
-                        result.AppendLine("}");
-                    }
-                    result.AppendLine(newLine);
-                    result.AppendLine("{");
-                }
-                else
-                {
-                    result.AppendLine($"    {newLine};");
-                }
-            }
-            else
-            {
-                if (hasTypeKeyword)
-                {
-                    if (!isFirstTime)
-                    {
-                        result.AppendLine("};");
-                    }
-                    result.AppendLine($"{newLine} {{");
-                }
-                else
-                {
-                    result.AppendLine($"    {newLine};");
-                }
-            }
-
-            isFirstTime = false;
-        }
-        result.AppendLine("};");
-
-        return result.ToString().Trim();
-    }
+    
 }
