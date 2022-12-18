@@ -400,4 +400,40 @@ public static partial class OpenApiExtensions
 
         return new OpenApiStreamReader().Read(new MemoryStream(Encoding.UTF8.GetBytes(openApiDocumentText)), out diagnostic);
     }
+
+    public static void Traverse(this string openApiText, Action<string, object> action)
+    {
+        var openApiDocument = ToOpenApiDocument(openApiText, out _);
+
+        foreach (var path in openApiDocument.Paths)
+        {
+            var val = path.Value;
+            action(path.Key, val);
+
+            foreach (var ext in val.Extensions)
+            {
+                action(ext.Key, ext.Value);
+            }
+
+            foreach (var parameter in val.Parameters)
+            {
+                if (parameter != null)
+                {
+                    action(parameter.Name, parameter);
+                }
+            }
+
+            foreach (var operation in val.Operations)
+            {
+                action(operation.Key.ToString(), operation.Value);
+            }
+
+            foreach (var server in val.Servers)
+            {
+                action(server.Url, server);
+            }
+
+            action(val.Reference.Id, val.Reference);
+        }
+    }
 }

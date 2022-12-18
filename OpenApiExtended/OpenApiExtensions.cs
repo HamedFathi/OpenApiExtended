@@ -1,4 +1,5 @@
 ﻿// ReSharper disable UnusedMember.Global
+using Microsoft.OpenApi.Interfaces;
 using Microsoft.OpenApi.Models;
 using OpenApiExtended.Enums;
 using OpenApiExtended.Helpers;
@@ -9,9 +10,39 @@ namespace OpenApiExtended;
 
 public static partial class OpenApiExtensions
 {
+    public static bool IsOpenApiDocument(this object obj)
+    {
+        return obj is OpenApiDocument;
+    }
+
+    public static bool IsOpenApiExtensible(this object obj)
+    {
+        return obj is IOpenApiExtensible;
+    }
+
+    public static bool IsOpenApiMediaType(this object obj)
+    {
+        return obj is OpenApiMediaType;
+    }
+
+    public static bool IsOpenApiOperation(this object obj)
+    {
+        return obj is OpenApiOperation;
+    }
+
+    public static bool IsOpenApiParameter(this object obj)
+    {
+        return obj is OpenApiParameter;
+    }
+
     public static bool IsOpenApiPathItem(this object obj)
     {
         return obj is OpenApiPathItem;
+    }
+
+    public static bool IsOpenApiPaths(this object obj)
+    {
+        return obj is OpenApiPaths;
     }
 
     public static bool IsOpenApiRequestBody(this object obj)
@@ -32,6 +63,11 @@ public static partial class OpenApiExtensions
     public static bool IsOpenApiSchema(this object obj)
     {
         return obj is OpenApiSchema;
+    }
+
+    public static bool IsOpenApiServer(this object obj)
+    {
+        return obj is OpenApiServer;
     }
 
     private static object? ConvertToOpenApiMimeType<T>(string mimeType) where T : Enum

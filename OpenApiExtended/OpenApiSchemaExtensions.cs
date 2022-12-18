@@ -597,6 +597,4 @@ public static partial class OpenApiExtensions
         result = result.ToFormattedCSharp(fileScopedNamespace);
         return result;
     }
-
-    
 }
