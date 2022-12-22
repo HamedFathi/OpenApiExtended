@@ -71,65 +71,70 @@ public static partial class OpenApiExtensions
         };
     }
 
-    public static IList<OpenApiSchema> GetComponentsSchema(this OpenApiDocument openApiDocument)
+    public static IDictionary<string, OpenApiSchema> GetComponentsSchema(this OpenApiDocument openApiDocument)
     {
         if (openApiDocument == null)
         {
             throw new ArgumentNullException(nameof(openApiDocument));
         }
-        return openApiDocument.Components.Schemas.Select(x => x.Value).ToList();
+
+        return openApiDocument.Components.Schemas;
     }
 
-    public static IList<OpenApiSchema> GetComponentsSchema(this OpenApiDocument openApiDocument, out int count)
+    public static IDictionary<string, OpenApiSchema> GetComponentsSchema(this OpenApiDocument openApiDocument, out int count)
     {
         if (openApiDocument == null)
         {
             throw new ArgumentNullException(nameof(openApiDocument));
         }
-        var schemas = openApiDocument.Components.Schemas.Select(x => x.Value).ToList();
+
+        var schemas = openApiDocument.Components.Schemas;
         count = schemas.Count;
         return schemas;
     }
 
-    public static IList<OpenApiSchema> GetComponentsSchema(this OpenApiDocument openApiDocument, Func<string, bool> schemaId)
+    public static IEnumerable<OpenApiSchema> GetComponentsSchema(this OpenApiDocument openApiDocument, Func<string, bool> schemaId)
     {
         if (openApiDocument == null)
         {
             throw new ArgumentNullException(nameof(openApiDocument));
         }
-        return openApiDocument.Components.Schemas.Where(x => schemaId(x.Key)).Select(x => x.Value).ToList();
+        return openApiDocument.Components.Schemas.Where(x => schemaId(x.Key)).Select(x => x.Value);
     }
 
-    public static IList<OpenApiSchema> GetComponentsSchema(this OpenApiDocument openApiDocument, Func<string, bool> schemaId, out int count)
+    public static IEnumerable<OpenApiSchema> GetComponentsSchema(this OpenApiDocument openApiDocument, Func<string, bool> schemaId, out int count)
     {
         if (openApiDocument == null)
         {
             throw new ArgumentNullException(nameof(openApiDocument));
         }
-        var schemas = openApiDocument.Components.Schemas.Where(x => schemaId(x.Key)).Select(x => x.Value).ToList();
+
+        var schemas = openApiDocument.Components.Schemas.Where(x => schemaId(x.Key))
+            .Select(x => x.Value)
+            .ToList();
         count = schemas.Count;
         return schemas;
     }
 
-    public static IList<OpenApiSchema> GetComponentsSchema(this OpenApiDocument openApiDocument, Func<OpenApiSchema, bool> schema)
+    public static IEnumerable<KeyValuePair<string, OpenApiSchema>> GetComponentsSchema(this OpenApiDocument openApiDocument, Func<OpenApiSchema, bool> schema)
     {
         if (openApiDocument == null)
         {
             throw new ArgumentNullException(nameof(openApiDocument));
         }
-        var schemas = openApiDocument.Components.Schemas.Select(x => x.Value);
-        var result = schemas.Where(schema).ToList();
+        var schemas = openApiDocument.Components.Schemas;
+        var result = schemas.Where(x => schema(x.Value));
         return result;
     }
 
-    public static IList<OpenApiSchema> GetComponentsSchema(this OpenApiDocument openApiDocument, Func<OpenApiSchema, bool> schema, out int count)
+    public static List<KeyValuePair<string, OpenApiSchema>> GetComponentsSchema(this OpenApiDocument openApiDocument, Func<OpenApiSchema, bool> schema, out int count)
     {
         if (openApiDocument == null)
         {
             throw new ArgumentNullException(nameof(openApiDocument));
         }
-        var schemas = openApiDocument.Components.Schemas.Select(x => x.Value);
-        var result = schemas.Where(schema).ToList();
+        var schemas = openApiDocument.Components.Schemas;
+        var result = schemas.Where(x => schema(x.Value)).ToList();
         count = result.Count;
         return result;
     }
