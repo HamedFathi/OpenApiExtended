@@ -188,6 +188,22 @@ public static partial class OpenApiExtensions
             ;
     }
 
+    public static bool IsEmptyObject(this OpenApiSchema openApiSchema, out OpenApiReference? openApiReference)
+    {
+        if (openApiSchema == null)
+        {
+            throw new ArgumentNullException(nameof(openApiSchema));
+        }
+
+        var status = openApiSchema.Reference != null
+               && (openApiSchema.Properties == null || openApiSchema.Properties.Count == 0)
+               && openApiSchema.Items == null
+            ;
+
+        openApiReference = status ? openApiSchema.Reference : null;
+        return status;
+    }
+
     public static bool IsObject(this OpenApiSchema schema)
     {
         if (schema == null) throw new ArgumentNullException(nameof(schema));
@@ -218,17 +234,13 @@ public static partial class OpenApiExtensions
         return !openApiSchema.IsArray() && !openApiSchema.IsObject() && string.IsNullOrEmpty(openApiSchema.Type) && string.IsNullOrEmpty(openApiSchema.Format) && !openApiSchema.HasReference();
     }
 
-    public static string ToCSharp(this OpenApiSchema openApiSchema, string rootClass, string @namespace
-        , CSharpResultKind resultKind = CSharpResultKind.Class, bool useNullable = true,
-        bool fileScopedNamespace = false, bool useArray = false, bool useDateTimeType = true)
+    public static string ToCSharp(this OpenApiSchema openApiSchema, CSharpSourceSettings settings)
     {
-        return resultKind switch
+        return settings.ResultKind switch
         {
-            CSharpResultKind.Class => openApiSchema.ToCSharpClass(rootClass, @namespace, useNullable,
-                fileScopedNamespace, useArray, useDateTimeType),
-            CSharpResultKind.Record => openApiSchema.ToCSharpRecord(rootClass, @namespace, useNullable,
-                fileScopedNamespace, useArray, useDateTimeType),
-            _ => throw new ArgumentOutOfRangeException(nameof(resultKind), resultKind, null)
+            CSharpResultKind.Class => openApiSchema.ToCSharpClass(settings),
+            CSharpResultKind.Record => openApiSchema.ToCSharpRecord(settings),
+            _ => throw new ArgumentOutOfRangeException(nameof(settings.ResultKind), settings.ResultKind, null)
         };
     }
 
@@ -334,15 +346,14 @@ public static partial class OpenApiExtensions
         return JsonNode.Parse(json);
     }
 
-    public static string ToTypeScript(this OpenApiSchema openApiSchema, string name,
-            TypeScriptResultKind resultKind = TypeScriptResultKind.Interface, bool useAnyType = false, bool useDateType = true)
+    public static string ToTypeScript(this OpenApiSchema openApiSchema, TypeScriptSourceSettings settings)
     {
         if (openApiSchema == null)
         {
             throw new ArgumentNullException(nameof(openApiSchema));
         }
 
-        name = name.Pascalize();
+        var name = settings.InterfaceOrTypeName.Pascalize();
         var result = string.Empty;
         var items = openApiSchema.Flatten().ToList();
 
@@ -353,7 +364,7 @@ public static partial class OpenApiExtensions
 
         Regex pattern = new("_____.+?_____", RegexOptions.Compiled);
         var index = 0;
-        var typeNeedsSemiColon = resultKind == TypeScriptResultKind.Type ? ";" : string.Empty;
+        var typeNeedsSemiColon = settings.ResultKind == TypeScriptResultKind.Type ? ";" : string.Empty;
 
         foreach (var item in items)
         {
@@ -361,7 +372,7 @@ public static partial class OpenApiExtensions
             {
                 result = item.Type switch
                 {
-                    "object" => $"{GetExportBlock(name, resultKind)} {{ {GetAlternativeKey(items.GetRoot() ?? "$")} }}{typeNeedsSemiColon} ",
+                    "object" => $"{GetExportBlock(name, settings.ResultKind)} {{ {GetAlternativeKey(items.GetRoot() ?? "$")} }}{typeNeedsSemiColon} ",
                     _ => throw new Exception("Root element is not an object.")
                 };
             }
@@ -375,7 +386,7 @@ public static partial class OpenApiExtensions
                             var interfaceName = item.Name.Singularize(false).Pascalize();
                             var replace = $"{item.Name}{optional}: {interfaceName}[]; {GetAlternativeKey(item.ParentKey)}";
                             result = result.ReplaceFirst(GetAlternativeKey(item.ParentKey), replace);
-                            result += $"{GetExportBlock(interfaceName, resultKind)} {{ {GetAlternativeKey(item.Key)} }}{typeNeedsSemiColon} ";
+                            result += $"{GetExportBlock(interfaceName, settings.ResultKind)} {{ {GetAlternativeKey(item.Key)} }}{typeNeedsSemiColon} ";
                             break;
                         }
                     case "object":
@@ -388,7 +399,7 @@ public static partial class OpenApiExtensions
                                     : item.Name.Singularize(false).Pascalize();
                                 var replace = $"{item.Name}{optional}: {interfaceName}[]; {GetAlternativeKey(item.ParentKey)}";
                                 result = result.ReplaceFirst(GetAlternativeKey(item.ParentKey), replace);
-                                result += $"{GetExportBlock(interfaceName, resultKind)} {{ {GetAlternativeKey(item.Key)} }}{typeNeedsSemiColon} ";
+                                result += $"{GetExportBlock(interfaceName, settings.ResultKind)} {{ {GetAlternativeKey(item.Key)} }}{typeNeedsSemiColon} ";
                             }
                             break;
                         }
@@ -396,7 +407,7 @@ public static partial class OpenApiExtensions
 
                 if (item != null && item.Type != "array" && item.Type != "object")
                 {
-                    var tsType = OpenApiUtility.GetTypeScriptType(OpenApiUtility.GetOpenApiValueType(item.Schema.Type, item.Schema.Format), useAnyType, useDateType);
+                    var tsType = OpenApiUtility.GetTypeScriptType(OpenApiUtility.GetOpenApiValueType(item.Schema.Type, item.Schema.Format), settings.UseAny, settings.UseDate);
                     var replace = $"{item.Name}{optional}: {tsType}; {GetAlternativeKey(item.ParentKey)}";
                     result = result.ReplaceFirst(GetAlternativeKey(item.ParentKey), replace);
                 }
@@ -413,13 +424,12 @@ public static partial class OpenApiExtensions
             {
                 TypeScriptResultKind.Interface => $"export interface {value}",
                 TypeScriptResultKind.Type => $"export type {value} =",
-                _ => throw new ArgumentOutOfRangeException(nameof(resultKind), resultKind, null)
+                _ => throw new ArgumentOutOfRangeException(nameof(settings.ResultKind), settings.ResultKind, null)
             };
         }
     }
 
-    public static void Traverse(this OpenApiSchema openApiSchema, Action<OpenApiSchemaInfo> action, string keySeparator = ".",
-                        string root = "$")
+    public static void Traverse(this OpenApiSchema openApiSchema, Action<OpenApiSchemaInfo> action, string keySeparator = ".", string root = "$")
     {
         var items = openApiSchema.Flatten(keySeparator, root);
         foreach (var item in items)
@@ -439,16 +449,16 @@ public static partial class OpenApiExtensions
         return exceptions.Any(x => string.Equals(x, word, StringComparison.OrdinalIgnoreCase));
     }
 
-    private static string ToCSharpClass(this OpenApiSchema openApiSchema, string rootClass, string @namespace, bool useNullable = true, bool fileScopedNamespace = false, bool useArray = false, bool useDateTimeType = true)
+    private static string ToCSharpClass(this OpenApiSchema openApiSchema, CSharpSourceSettings settings)
     {
         if (openApiSchema == null)
         {
             throw new ArgumentNullException(nameof(openApiSchema));
         }
 
-        var className = rootClass.Pascalize();
-        @namespace = @namespace.Pascalize();
-        var nullableMark = useNullable ? "?" : string.Empty;
+        var className = settings.ClassOrRecordName.Pascalize();
+        var ns = settings.Namespace.Pascalize();
+        var nullableMark = settings.UseNullable ? "?" : string.Empty;
         var result = string.Empty;
         var items = openApiSchema.Flatten().ToList();
 
@@ -477,7 +487,7 @@ public static partial class OpenApiExtensions
                     case "array":
                         {
                             var clsName = item.Name.Singularize(false).Pascalize();
-                            var genericType = useArray ? $"{clsName}[]{nullableMark}" : $"List<{clsName}>{nullableMark}";
+                            var genericType = settings.UseArray ? $"{clsName}[]{nullableMark}" : $"List<{clsName}>{nullableMark}";
                             var replace = $"[JsonPropertyName(\"{item.Name}\")] public {genericType} {item.Name.Pascalize()} {{ get; set; }} {GetAlternativeKey(item.ParentKey)}";
                             result = result.ReplaceFirst(GetAlternativeKey(item.ParentKey), replace);
                             result += $"public class {clsName} {{ {GetAlternativeKey(item.Key)} }} ";
@@ -491,7 +501,7 @@ public static partial class OpenApiExtensions
                                 var clsName = IsSingularizationException(item.Name)
                                     ? item.Name.Pascalize()
                                     : item.Name.Singularize(false).Pascalize();
-                                var genericType = useArray ? $"{clsName}[]{nullableMark}" : $"List<{clsName}>{nullableMark}";
+                                var genericType = settings.UseArray ? $"{clsName}[]{nullableMark}" : $"List<{clsName}>{nullableMark}";
                                 var replace = $"[JsonPropertyName(\"{item.Name}\")] public {genericType} {item.Name.Pascalize()} {{ get; set; }} {GetAlternativeKey(item.ParentKey)}";
                                 result = result.ReplaceFirst(GetAlternativeKey(item.ParentKey), replace);
                                 result += $"public class {clsName} {{ {GetAlternativeKey(item.Key)} }} ";
@@ -502,7 +512,7 @@ public static partial class OpenApiExtensions
 
                 if (item != null && item.Type != "array" && item.Type != "object")
                 {
-                    var csType = OpenApiUtility.GetCSharpType(OpenApiUtility.GetOpenApiValueType(item.Schema.Type, item.Schema.Format), "object", useArray, useDateTimeType);
+                    var csType = OpenApiUtility.GetCSharpType(OpenApiUtility.GetOpenApiValueType(item.Schema.Type, item.Schema.Format), "object", settings.UseArray, settings.UseDateTime);
                     var replace = $"[JsonPropertyName(\"{item.Name}\")] public {csType}{nullableMark} {item.Name.Pascalize()} {{ get; set; }} {GetAlternativeKey(item.ParentKey)}";
                     result = result.ReplaceFirst(GetAlternativeKey(item.ParentKey), replace);
                 }
@@ -510,24 +520,23 @@ public static partial class OpenApiExtensions
             index++;
         }
         result = pattern.Replace(result, string.Empty);
-        result = fileScopedNamespace ? $"namespace {@namespace}; {result}" : $"namespace {@namespace} {{ {result} }}";
-        var genericNamespace = useArray ? string.Empty : "using System.Collections.Generic;";
+        result = settings.FileScopedNamespace ? $"namespace {ns}; {result}" : $"namespace {ns} {{ {result} }}";
+        var genericNamespace = settings.UseArray ? string.Empty : "using System.Collections.Generic;";
         result = $"using System; {genericNamespace} using System.Text.Json.Serialization; " + result;
-        result = result.ToFormattedCSharp(fileScopedNamespace);
+        result = result.ToFormattedCSharp(settings.FileScopedNamespace);
         return result;
     }
 
-    private static string ToCSharpRecord(this OpenApiSchema openApiSchema, string rootClass, string @namespace,
-            bool useNullable = true, bool fileScopedNamespace = false, bool useArray = false, bool useDateTimeType = true)
+    private static string ToCSharpRecord(this OpenApiSchema openApiSchema, CSharpSourceSettings settings)
     {
         if (openApiSchema == null)
         {
             throw new ArgumentNullException(nameof(openApiSchema));
         }
 
-        var className = rootClass.Pascalize();
-        @namespace = @namespace.Pascalize();
-        var nullableMark = useNullable ? "?" : string.Empty;
+        var className = settings.ClassOrRecordName.Pascalize();
+        var ns = settings.Namespace.Pascalize();
+        var nullableMark = settings.UseNullable ? "?" : string.Empty;
         var result = string.Empty;
         var items = openApiSchema.Flatten().ToList();
 
@@ -557,7 +566,7 @@ public static partial class OpenApiExtensions
                     case "array":
                         {
                             var clsName = item.Name.Singularize(false).Pascalize();
-                            var genericType = useArray ? $"{clsName}[]{nullableMark}" : $"IReadOnlyList<{clsName}>{nullableMark}";
+                            var genericType = settings.UseArray ? $"{clsName}[]{nullableMark}" : $"IReadOnlyList<{clsName}>{nullableMark}";
                             var replace = $"[property: JsonPropertyName(\"{item.Name}\")] {genericType} {item.Name.Pascalize()}, {GetAlternativeKey(item.ParentKey)}";
                             result = result.ReplaceFirst(GetAlternativeKey(item.ParentKey), replace);
                             result += $"public record {clsName} ( {GetAlternativeKey(item.Key)} ); ";
@@ -571,7 +580,7 @@ public static partial class OpenApiExtensions
                                 var clsName = IsSingularizationException(item.Name)
                                     ? item.Name.Pascalize()
                                     : item.Name.Singularize(false).Pascalize();
-                                var genericType = useArray ? $"{clsName}[]{nullableMark}" : $"IReadOnlyList<{clsName}>{nullableMark}";
+                                var genericType = settings.UseArray ? $"{clsName}[]{nullableMark}" : $"IReadOnlyList<{clsName}>{nullableMark}";
                                 var replace = $"[property: JsonPropertyName(\"{item.Name}\")] {genericType} {item.Name.Pascalize()}, {GetAlternativeKey(item.ParentKey)}";
                                 result = result.ReplaceFirst(GetAlternativeKey(item.ParentKey), replace);
                                 result += $"public record {clsName} ( {GetAlternativeKey(item.Key)} ); ";
@@ -582,7 +591,7 @@ public static partial class OpenApiExtensions
 
                 if (item != null && item.Type != "array" && item.Type != "object")
                 {
-                    var csType = OpenApiUtility.GetCSharpType(OpenApiUtility.GetOpenApiValueType(item.Schema.Type, item.Schema.Format), "object", useArray, useDateTimeType);
+                    var csType = OpenApiUtility.GetCSharpType(OpenApiUtility.GetOpenApiValueType(item.Schema.Type, item.Schema.Format), "object", settings.UseArray, settings.UseDateTime);
                     var replace = $"[property: JsonPropertyName(\"{item.Name}\")] {csType}{nullableMark} {item.Name.Pascalize()}, {GetAlternativeKey(item.ParentKey)}";
                     result = result.ReplaceFirst(GetAlternativeKey(item.ParentKey), replace);
                 }
@@ -591,10 +600,10 @@ public static partial class OpenApiExtensions
         }
         result = pattern.Replace(result, string.Empty);
         result = lastCommaRemover.Replace(result, " )");
-        result = fileScopedNamespace ? $"namespace {@namespace}; {result}" : $"namespace {@namespace} {{ {result} }}";
-        var genericNamespace = useArray ? string.Empty : "using System.Collections.Generic;";
+        result = settings.FileScopedNamespace ? $"namespace {ns}; {result}" : $"namespace {ns} {{ {result} }}";
+        var genericNamespace = settings.UseArray ? string.Empty : "using System.Collections.Generic;";
         result = $"using System; {genericNamespace} using System.Text.Json.Serialization; " + result;
-        result = result.ToFormattedCSharp(fileScopedNamespace);
+        result = result.ToFormattedCSharp(settings.FileScopedNamespace);
         return result;
     }
 }
