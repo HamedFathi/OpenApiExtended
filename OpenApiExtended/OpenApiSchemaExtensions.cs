@@ -178,14 +178,7 @@ public static partial class OpenApiExtensions
 
     public static bool IsEmptyObject(this OpenApiSchema openApiSchema)
     {
-        if (openApiSchema == null)
-        {
-            throw new ArgumentNullException(nameof(openApiSchema));
-        }
-        return openApiSchema.Reference != null
-            && (openApiSchema.Properties == null || openApiSchema.Properties.Count == 0)
-            && openApiSchema.Items == null
-            ;
+        return openApiSchema.IsEmptyObject(out _);
     }
 
     public static bool IsEmptyObject(this OpenApiSchema openApiSchema, out OpenApiReference? openApiReference)
@@ -198,6 +191,7 @@ public static partial class OpenApiExtensions
         var status = openApiSchema.Reference != null
                && (openApiSchema.Properties == null || openApiSchema.Properties.Count == 0)
                && openApiSchema.Items == null
+               && string.Equals(openApiSchema.Type, "object", StringComparison.OrdinalIgnoreCase)
             ;
 
         openApiReference = status ? openApiSchema.Reference : null;
