@@ -1,8 +1,8 @@
 ﻿using OpenApiExtended.Enums;
 
-namespace OpenApiExtended.Models;
+namespace OpenApiExtended.Settings;
 
-public class CSharpSourceSettings
+public class CSharpGeneratorSettings
 {
     public string Namespace { get; set; } = "RootNameSpace";
     public string ClassOrRecordName { get; set; } = "Root";
@@ -10,5 +10,5 @@ public class CSharpSourceSettings
     public bool UseArray { get; set; } = false;
     public bool UseDateTime { get; set; } = true;
     public bool UseNullable { get; set; } = true;
-    public CSharpResultKind ResultKind { get; set; } = CSharpResultKind.Class;
+    public CSharpTypeStyle TypeStyle { get; set; } = CSharpTypeStyle.Class;
 }

@@ -4,7 +4,7 @@
 
 namespace OpenApiExtended.Enums;
 
-public enum TypeScriptResultKind
+public enum TypeScriptTypeStyle
 {
     Interface,
     Type

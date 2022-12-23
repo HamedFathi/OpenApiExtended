@@ -4,7 +4,7 @@
 
 namespace OpenApiExtended.Enums;
 
-public enum CSharpResultKind
+public enum CSharpTypeStyle
 {
     Class,
     Record

@@ -6,6 +6,7 @@ using Microsoft.OpenApi.Models;
 using OpenApiExtended.Enums;
 using OpenApiExtended.Helpers;
 using OpenApiExtended.Models;
+using OpenApiExtended.Settings;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -228,13 +229,13 @@ public static partial class OpenApiExtensions
         return !openApiSchema.IsArray() && !openApiSchema.IsObject() && string.IsNullOrEmpty(openApiSchema.Type) && string.IsNullOrEmpty(openApiSchema.Format) && !openApiSchema.HasReference();
     }
 
-    public static string ToCSharp(this OpenApiSchema openApiSchema, CSharpSourceSettings settings)
+    public static string ToCSharp(this OpenApiSchema openApiSchema, CSharpGeneratorSettings settings)
     {
-        return settings.ResultKind switch
+        return settings.TypeStyle switch
         {
-            CSharpResultKind.Class => openApiSchema.ToCSharpClass(settings),
-            CSharpResultKind.Record => openApiSchema.ToCSharpRecord(settings),
-            _ => throw new ArgumentOutOfRangeException(nameof(settings.ResultKind), settings.ResultKind, null)
+            CSharpTypeStyle.Class => openApiSchema.ToCSharpClass(settings),
+            CSharpTypeStyle.Record => openApiSchema.ToCSharpRecord(settings),
+            _ => throw new ArgumentOutOfRangeException(nameof(settings.TypeStyle), settings.TypeStyle, null)
         };
     }
 
@@ -340,7 +341,7 @@ public static partial class OpenApiExtensions
         return JsonNode.Parse(json);
     }
 
-    public static string ToTypeScript(this OpenApiSchema openApiSchema, TypeScriptSourceSettings settings)
+    public static string ToTypeScript(this OpenApiSchema openApiSchema, TypeScriptGeneratorSettings settings)
     {
         if (openApiSchema == null)
         {
@@ -358,7 +359,7 @@ public static partial class OpenApiExtensions
 
         Regex pattern = new("_____.+?_____", RegexOptions.Compiled);
         var index = 0;
-        var typeNeedsSemiColon = settings.ResultKind == TypeScriptResultKind.Type ? ";" : string.Empty;
+        var typeNeedsSemiColon = settings.TypeStyle == TypeScriptTypeStyle.Type ? ";" : string.Empty;
 
         foreach (var item in items)
         {
@@ -366,7 +367,7 @@ public static partial class OpenApiExtensions
             {
                 result = item.Type switch
                 {
-                    "object" => $"{GetExportBlock(name, settings.ResultKind)} {{ {GetAlternativeKey(items.GetRoot() ?? "$")} }}{typeNeedsSemiColon} ",
+                    "object" => $"{GetExportBlock(name, settings.TypeStyle)} {{ {GetAlternativeKey(items.GetRoot() ?? "$")} }}{typeNeedsSemiColon} ",
                     _ => throw new Exception("Root element is not an object.")
                 };
             }
@@ -380,7 +381,7 @@ public static partial class OpenApiExtensions
                             var interfaceName = item.Name.Singularize(false).Pascalize();
                             var replace = $"{item.Name}{optional}: {interfaceName}[]; {GetAlternativeKey(item.ParentKey)}";
                             result = result.ReplaceFirst(GetAlternativeKey(item.ParentKey), replace);
-                            result += $"{GetExportBlock(interfaceName, settings.ResultKind)} {{ {GetAlternativeKey(item.Key)} }}{typeNeedsSemiColon} ";
+                            result += $"{GetExportBlock(interfaceName, settings.TypeStyle)} {{ {GetAlternativeKey(item.Key)} }}{typeNeedsSemiColon} ";
                             break;
                         }
                     case "object":
@@ -393,7 +394,7 @@ public static partial class OpenApiExtensions
                                     : item.Name.Singularize(false).Pascalize();
                                 var replace = $"{item.Name}{optional}: {interfaceName}[]; {GetAlternativeKey(item.ParentKey)}";
                                 result = result.ReplaceFirst(GetAlternativeKey(item.ParentKey), replace);
-                                result += $"{GetExportBlock(interfaceName, settings.ResultKind)} {{ {GetAlternativeKey(item.Key)} }}{typeNeedsSemiColon} ";
+                                result += $"{GetExportBlock(interfaceName, settings.TypeStyle)} {{ {GetAlternativeKey(item.Key)} }}{typeNeedsSemiColon} ";
                             }
                             break;
                         }
@@ -412,13 +413,13 @@ public static partial class OpenApiExtensions
         result = result.ToFormattedTypeScript();
         return result;
 
-        string GetExportBlock(string value, TypeScriptResultKind kind)
+        string GetExportBlock(string value, TypeScriptTypeStyle typeStyle)
         {
-            return kind switch
+            return typeStyle switch
             {
-                TypeScriptResultKind.Interface => $"export interface {value}",
-                TypeScriptResultKind.Type => $"export type {value} =",
-                _ => throw new ArgumentOutOfRangeException(nameof(settings.ResultKind), settings.ResultKind, null)
+                TypeScriptTypeStyle.Interface => $"export interface {value}",
+                TypeScriptTypeStyle.Type => $"export type {value} =",
+                _ => throw new ArgumentOutOfRangeException(nameof(settings.TypeStyle), settings.TypeStyle, null)
             };
         }
     }
@@ -443,7 +444,7 @@ public static partial class OpenApiExtensions
         return exceptions.Any(x => string.Equals(x, word, StringComparison.OrdinalIgnoreCase));
     }
 
-    private static string ToCSharpClass(this OpenApiSchema openApiSchema, CSharpSourceSettings settings)
+    private static string ToCSharpClass(this OpenApiSchema openApiSchema, CSharpGeneratorSettings settings)
     {
         if (openApiSchema == null)
         {
@@ -521,7 +522,7 @@ public static partial class OpenApiExtensions
         return result;
     }
 
-    private static string ToCSharpRecord(this OpenApiSchema openApiSchema, CSharpSourceSettings settings)
+    private static string ToCSharpRecord(this OpenApiSchema openApiSchema, CSharpGeneratorSettings settings)
     {
         if (openApiSchema == null)
         {
