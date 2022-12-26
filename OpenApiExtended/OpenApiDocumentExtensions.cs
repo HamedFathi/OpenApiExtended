@@ -1,6 +1,7 @@
 ﻿// ReSharper disable UnusedMember.Global
 using Microsoft.OpenApi.Models;
 using Microsoft.OpenApi.Readers;
+using Microsoft.OpenApi.Writers;
 using OpenApiExtended.Enums;
 using System;
 using System.Collections.Generic;
@@ -404,6 +405,20 @@ public static partial class OpenApiExtensions
             throw new ArgumentException("Value cannot be null or whitespace.", nameof(openApiDocumentText));
 
         return new OpenApiStreamReader().Read(new MemoryStream(Encoding.UTF8.GetBytes(openApiDocumentText)), out diagnostic);
+    }
+
+    public static string ToOpenApiFile(this OpenApiDocument openApiDocument, OpenApiWriterType openApiWriterType = OpenApiWriterType.Json)
+    {
+        using var outputString = new StringWriter();
+        if (openApiWriterType == OpenApiWriterType.Json)
+        {
+            var jsonWriter = new OpenApiJsonWriter(outputString);
+            openApiDocument.SerializeAsV3(jsonWriter);
+            return outputString.ToString();
+        }
+        var yamlWriter = new OpenApiYamlWriter(outputString);
+        openApiDocument.SerializeAsV3(yamlWriter);
+        return outputString.ToString();
     }
 
     public static void Traverse(this string openApiText, Action<string, object> action)
