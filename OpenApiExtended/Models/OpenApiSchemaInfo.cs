@@ -1,5 +1,6 @@
 ﻿// ReSharper disable IdentifierTypo
 // ReSharper disable UnusedMember.Global
+// ReSharper disable InconsistentNaming
 
 using Microsoft.OpenApi.Models;
 using System.Collections.Generic;
@@ -22,6 +23,8 @@ public class OpenApiSchemaInfo
         KeySeparator = keySeparator;
         Parents = new List<string>();
     }
+
+    public string Format { get; set; } = null!;
 
     public string Key
     {

@@ -4,7 +4,9 @@ using Microsoft.OpenApi.Models;
 using OpenApiExtended.Enums;
 using OpenApiExtended.Helpers;
 using System;
+using System.Collections.Generic;
 using System.Linq;
+using System.Text.Json;
 
 namespace OpenApiExtended;
 
@@ -70,6 +72,76 @@ public static partial class OpenApiExtensions
         return obj is OpenApiServer;
     }
 
+    public static string ToCSharpType(this JsonValueKind kind)
+    {
+        return kind switch
+        {
+            JsonValueKind.Undefined => "object",
+            JsonValueKind.Object => "Dictionary<string, object>",
+            JsonValueKind.Array => "List<object>",
+            JsonValueKind.String => "string",
+            JsonValueKind.Number => "double", // or "decimal"
+            JsonValueKind.True => "bool",
+            JsonValueKind.False => "bool",
+            JsonValueKind.Null => "object",
+            _ => throw new ArgumentOutOfRangeException(nameof(kind), kind, null)
+        };
+    }
+
+    public static string ToTypeScriptType(this JsonValueKind kind)
+    {
+        return kind switch
+        {
+            JsonValueKind.Undefined => "any",
+            JsonValueKind.Object => "{ [key: string]: any }",
+            JsonValueKind.Array => "any[]",
+            JsonValueKind.String => "string",
+            JsonValueKind.Number => "number",
+            JsonValueKind.True => "boolean",
+            JsonValueKind.False => "boolean",
+            JsonValueKind.Null => "null",
+            _ => throw new ArgumentOutOfRangeException(nameof(kind), kind, null)
+        };
+    }
+
+    internal static IDictionary<string, (JsonElement Value, JsonValueKind Kind)> Flatten(this JsonElement jsonElement, string separator = ".", string prefix = "")
+    {
+        var dictionary = new Dictionary<string, (JsonElement, JsonValueKind)>();
+
+        foreach (var property in jsonElement.EnumerateObject())
+        {
+            var key = string.IsNullOrEmpty(prefix) ? property.Name : $"{prefix}{separator}{property.Name}";
+
+            switch (property.Value.ValueKind)
+            {
+                case JsonValueKind.Object:
+                    foreach (var nested in Flatten(property.Value, separator, key))
+                    {
+                        dictionary.Add(nested.Key, nested.Value);
+                    }
+                    break;
+
+                case JsonValueKind.Array:
+                    var index = 0;
+                    foreach (var item in property.Value.EnumerateArray())
+                    {
+                        foreach (var nested in Flatten(item, separator, $"{key}{separator}{index}"))
+                        {
+                            dictionary.Add(nested.Key, nested.Value);
+                        }
+                        index++;
+                    }
+                    break;
+
+                default:
+                    dictionary.Add(key, (property.Value, property.Value.ValueKind));
+                    break;
+            }
+        }
+
+        return dictionary;
+    }
+
     private static object? ConvertToOpenApiMimeType<T>(string mimeType) where T : Enum
     {
         var result = Utilities.GetEnumDetails<T>().FirstOrDefault(x => x.Description == mimeType);
@@ -107,7 +179,7 @@ public static partial class OpenApiExtensions
             OpenApiValueType.IPv4 => "\"127.0.0.1\"",
             OpenApiValueType.IPv6 => "\"::1\"",
             OpenApiValueType.Null => null,
-            _ => string.Empty
+            _ => null
         };
     }
 }

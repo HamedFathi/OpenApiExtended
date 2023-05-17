@@ -10,6 +10,7 @@ using OpenApiExtended.Settings;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
 
@@ -29,6 +30,7 @@ public static partial class OpenApiExtensions
         {
             Name = root,
             Type = openApiSchema.Type,
+            Format = openApiSchema.Format,
             Schema = openApiSchema
         });
         var newCurrent = new List<OpenApiSchemaInfo>();
@@ -41,14 +43,15 @@ public static partial class OpenApiExtensions
                 // Push root if nothing is available in the stack.
                 parents.Push(parents.Count == 0 ? root : current.Name);
             }
-            // If it is not Object or Array means every iteration we are closing to finish traversing of a parent.
+            // If it is not Object or Array means every iteration we are closing to finish
+            // traversing of a parent.
             if (!string.Equals(current.Type, "object", StringComparison.OrdinalIgnoreCase)
                 && !string.Equals(current.Type, "array", StringComparison.OrdinalIgnoreCase))
             {
                 --counterToPop;
             }
-            // If counter is zero, we finished traverse on current parent so we should pop it.
-            // Reset counter to initial state until next time.
+            // If counter is zero, we finished traverse on current parent so we should pop it. Reset
+            // counter to initial state until next time.
             if (counterToPop == 0)
             {
                 parents.Pop();
@@ -72,6 +75,7 @@ public static partial class OpenApiExtensions
                     {
                         Name = current.Name,
                         Type = current.Schema.Items.Type,
+                        Format = current.Schema.Items.Format,
                         Schema = current.Schema.Items,
                         Parents = parentsWithCorrectOrder
                     };
@@ -239,6 +243,44 @@ public static partial class OpenApiExtensions
         };
     }
 
+    public static IEnumerable<OpenApiSchemaIR> ToIntermediateRepresentation(this OpenApiSchema openApiSchema, Func<OpenApiSchemaInfo?, object>? valueProvider = null, string separator = ".", string prefix = "")
+    {
+        if (openApiSchema == null)
+        {
+            throw new ArgumentNullException(nameof(openApiSchema));
+        }
+        var schema = new List<OpenApiSchemaIR>();
+        var flatJson = openApiSchema.ToJsonElement(valueProvider)?.Flatten(separator, prefix);
+        if (flatJson == null) return schema;
+
+        foreach (var item in flatJson)
+        {
+            schema.Add(new OpenApiSchemaIR
+            {
+                Key = item.Key,
+                Value = item.Value.Value.ToString(),
+                ValueKind = item.Value.Kind,
+                CSharpKind = item.Value.Kind.ToCSharpType(),
+                TypeScriptKind = item.Value.Kind.ToTypeScriptType()
+            });
+        }
+
+        return schema;
+    }
+
+    public static JsonElement? ToJsonElement(this OpenApiSchema openApiSchema, Func<OpenApiSchemaInfo?, object>? valueProvider = null)
+    {
+        if (openApiSchema == null)
+        {
+            throw new ArgumentNullException(nameof(openApiSchema));
+        }
+        var json = openApiSchema.ToJsonExample(valueProvider);
+        if (string.IsNullOrEmpty(json)) return null;
+
+        var jsonNode = JsonNode.Parse(json);
+        return jsonNode.Deserialize<JsonElement>();
+    }
+
     public static string ToJsonExample(this OpenApiSchema openApiSchema, Func<OpenApiSchemaInfo?, object>? valueProvider = null)
     {
         if (openApiSchema == null)
@@ -331,14 +373,14 @@ public static partial class OpenApiExtensions
         return result;
     }
 
-    public static JsonNode? ToJsonNode(this OpenApiSchema openApiSchema)
+    public static JsonNode? ToJsonNode(this OpenApiSchema openApiSchema, Func<OpenApiSchemaInfo?, object>? valueProvider = null)
     {
         if (openApiSchema == null)
         {
             throw new ArgumentNullException(nameof(openApiSchema));
         }
-        var json = openApiSchema.ToJsonExample();
-        return JsonNode.Parse(json);
+        var json = openApiSchema.ToJsonExample(valueProvider);
+        return string.IsNullOrEmpty(json) ? null : JsonNode.Parse(json);
     }
 
     public static string ToTypeScript(this OpenApiSchema openApiSchema, TypeScriptGeneratorSettings settings)
@@ -368,7 +410,8 @@ public static partial class OpenApiExtensions
                 result = item.Type switch
                 {
                     "object" => $"{GetExportBlock(name, settings.TypeStyle)} {{ {GetAlternativeKey(items.GetRoot() ?? "$")} }}{typeNeedsSemiColon} ",
-                    _ => throw new Exception("Root element is not an object.")
+                    // _ => throw new Exception("Root element is not an object.")
+                    _ => string.Empty
                 };
             }
             else
@@ -402,7 +445,7 @@ public static partial class OpenApiExtensions
 
                 if (item != null && item.Type != "array" && item.Type != "object")
                 {
-                    var tsType = OpenApiUtility.GetTypeScriptType(OpenApiUtility.GetOpenApiValueType(item.Schema.Type, item.Schema.Format), settings.UseAny, settings.UseDate);
+                    var tsType = settings.CustomTypeReplacer?.Invoke(item.Schema.Type, item.Schema.Format) ?? OpenApiUtility.GetTypeScriptType(OpenApiUtility.GetOpenApiValueType(item.Schema.Type, item.Schema.Format), settings.UseAny, settings.UseDate);
                     var replace = $"{item.Name}{optional}: {tsType}; {GetAlternativeKey(item.ParentKey)}";
                     result = result.ReplaceFirst(GetAlternativeKey(item.ParentKey), replace);
                 }
@@ -472,7 +515,8 @@ public static partial class OpenApiExtensions
                 result = item.Type switch
                 {
                     "object" => $"public class {className} {{ {GetAlternativeKey(items.GetRoot() ?? "$")} }} ",
-                    _ => throw new Exception("Root element is not an object.")
+                    // _ => throw new Exception("Root element is not an object.")
+                    _ => string.Empty
                 };
             }
             else
@@ -507,7 +551,7 @@ public static partial class OpenApiExtensions
 
                 if (item != null && item.Type != "array" && item.Type != "object")
                 {
-                    var csType = OpenApiUtility.GetCSharpType(OpenApiUtility.GetOpenApiValueType(item.Schema.Type, item.Schema.Format), "object", settings.UseArray, settings.UseDateTime);
+                    var csType = settings.CustomTypeReplacer?.Invoke(item.Schema.Type, item.Schema.Format) ?? OpenApiUtility.GetCSharpType(OpenApiUtility.GetOpenApiValueType(item.Schema.Type, item.Schema.Format), "object", settings.UseArray, settings.UseDateTime);
                     var replace = $"[JsonPropertyName(\"{item.Name}\")] public {csType}{nullableMark} {item.Name.Pascalize()} {{ get; set; }} {GetAlternativeKey(item.ParentKey)}";
                     result = result.ReplaceFirst(GetAlternativeKey(item.ParentKey), replace);
                 }
@@ -515,6 +559,12 @@ public static partial class OpenApiExtensions
             index++;
         }
         result = pattern.Replace(result, string.Empty);
+
+        if (string.IsNullOrEmpty(result))
+        {
+            return string.Empty;
+        }
+
         result = settings.FileScopedNamespace ? $"namespace {ns}; {result}" : $"namespace {ns} {{ {result} }}";
         var genericNamespace = settings.UseArray ? string.Empty : "using System.Collections.Generic;";
         result = $"using System; {genericNamespace} using System.Text.Json.Serialization; " + result;
@@ -551,7 +601,8 @@ public static partial class OpenApiExtensions
                 result = item.Type switch
                 {
                     "object" => $"public record {className} ( {GetAlternativeKey(items.GetRoot() ?? "$")} ); ",
-                    _ => throw new Exception("Root element is not an object.")
+                    // _ => throw new Exception("Root element is not an object.")
+                    _ => string.Empty
                 };
             }
             else
@@ -586,7 +637,7 @@ public static partial class OpenApiExtensions
 
                 if (item != null && item.Type != "array" && item.Type != "object")
                 {
-                    var csType = OpenApiUtility.GetCSharpType(OpenApiUtility.GetOpenApiValueType(item.Schema.Type, item.Schema.Format), "object", settings.UseArray, settings.UseDateTime);
+                    var csType = settings.CustomTypeReplacer?.Invoke(item.Schema.Type, item.Schema.Format) ?? OpenApiUtility.GetCSharpType(OpenApiUtility.GetOpenApiValueType(item.Schema.Type, item.Schema.Format), "object", settings.UseArray, settings.UseDateTime);
                     var replace = $"[property: JsonPropertyName(\"{item.Name}\")] {csType}{nullableMark} {item.Name.Pascalize()}, {GetAlternativeKey(item.ParentKey)}";
                     result = result.ReplaceFirst(GetAlternativeKey(item.ParentKey), replace);
                 }
@@ -594,6 +645,12 @@ public static partial class OpenApiExtensions
             index++;
         }
         result = pattern.Replace(result, string.Empty);
+
+        if (string.IsNullOrEmpty(result))
+        {
+            return string.Empty;
+        }
+
         result = lastCommaRemover.Replace(result, " )");
         result = settings.FileScopedNamespace ? $"namespace {ns}; {result}" : $"namespace {ns} {{ {result} }}";
         var genericNamespace = settings.UseArray ? string.Empty : "using System.Collections.Generic;";
