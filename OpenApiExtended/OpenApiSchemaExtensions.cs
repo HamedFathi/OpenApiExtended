@@ -369,6 +369,12 @@ public static partial class OpenApiExtensions
             index++;
         }
         result = pattern.Replace(result, string.Empty);
+
+        if (string.IsNullOrEmpty(result))
+        {
+            return string.Empty;
+        }
+
         result = result.ToFormattedJson();
         return result;
     }
@@ -453,6 +459,12 @@ public static partial class OpenApiExtensions
             index++;
         }
         result = pattern.Replace(result, string.Empty);
+
+        if (string.IsNullOrEmpty(result))
+        {
+            return string.Empty;
+        }
+
         result = result.ToFormattedTypeScript();
         return result;
 
