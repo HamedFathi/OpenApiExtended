@@ -108,35 +108,52 @@ public static partial class OpenApiExtensions
     {
         var dictionary = new Dictionary<string, (JsonElement, JsonValueKind)>();
 
-        foreach (var property in jsonElement.EnumerateObject())
+        switch (jsonElement.ValueKind)
         {
-            var key = string.IsNullOrEmpty(prefix) ? property.Name : $"{prefix}{separator}{property.Name}";
+            case JsonValueKind.Object:
+                foreach (var property in jsonElement.EnumerateObject())
+                {
+                    var key = string.IsNullOrEmpty(prefix) ? property.Name : $"{prefix}{separator}{property.Name}";
 
-            switch (property.Value.ValueKind)
-            {
-                case JsonValueKind.Object:
-                    foreach (var nested in Flatten(property.Value, separator, key))
+                    switch (property.Value.ValueKind)
                     {
-                        dictionary.Add(nested.Key, nested.Value);
+                        case JsonValueKind.Object:
+                        case JsonValueKind.Array:
+                            foreach (var nested in Flatten(property.Value, separator, key))
+                            {
+                                dictionary.Add(nested.Key, nested.Value);
+                            }
+                            break;
+                        default:
+                            dictionary.Add(key, (property.Value, property.Value.ValueKind));
+                            break;
                     }
-                    break;
-
-                case JsonValueKind.Array:
-                    var index = 0;
-                    foreach (var item in property.Value.EnumerateArray())
+                }
+                break;
+            case JsonValueKind.Array:
+                var index = 0;
+                foreach (var item in jsonElement.EnumerateArray())
+                {
+                    var key = $"{prefix}{separator}{index}";
+                    switch (item.ValueKind)
                     {
-                        foreach (var nested in Flatten(item, separator, $"{key}{separator}{index}"))
-                        {
-                            dictionary.Add(nested.Key, nested.Value);
-                        }
-                        index++;
+                        case JsonValueKind.Object:
+                        case JsonValueKind.Array:
+                            foreach (var nested in Flatten(item, separator, key))
+                            {
+                                dictionary.Add(nested.Key, nested.Value);
+                            }
+                            break;
+                        default:
+                            dictionary.Add(key, (item, item.ValueKind));
+                            break;
                     }
-                    break;
-
-                default:
-                    dictionary.Add(key, (property.Value, property.Value.ValueKind));
-                    break;
-            }
+                    index++;
+                }
+                break;
+            default:
+                dictionary.Add(prefix, (jsonElement, jsonElement.ValueKind));
+                break;
         }
 
         return dictionary;
