@@ -8,7 +8,7 @@ namespace OpenApiExtended.Helpers;
 
 internal static class Utilities
 {
-    public static IEnumerable<EnumDetail<T>> GetEnumDetails<T>() where T : Enum
+    internal static IEnumerable<EnumDetail<T>> GetEnumDetails<T>() where T : Enum
     {
         var result = new List<EnumDetail<T>>();
         var names = Enum.GetNames(typeof(T));
@@ -30,7 +30,7 @@ internal static class Utilities
         return result;
     }
 
-    public static IEnumerable<EnumDetail<T>> GetEnumDetails<T>(Func<EnumDetail<T>, bool> predicate) where T : Enum
+    internal static IEnumerable<EnumDetail<T>> GetEnumDetails<T>(Func<EnumDetail<T>, bool> predicate) where T : Enum
     {
         return GetEnumDetails<T>().Where(predicate);
     }

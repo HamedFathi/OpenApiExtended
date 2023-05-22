@@ -258,6 +258,7 @@ public static partial class OpenApiExtensions
             schema.Add(new OpenApiSchemaIR
             {
                 Key = item.Key,
+                SeparatedKey = item.Key.Split(new[] { separator }, StringSplitOptions.None),
                 Value = item.Value.Value.ToString(),
                 ValueKind = item.Value.Kind,
                 CSharpKind = item.Value.Kind.ToCSharpType(),
