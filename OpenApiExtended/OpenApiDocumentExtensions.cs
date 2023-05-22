@@ -421,39 +421,57 @@ public static partial class OpenApiExtensions
         return outputString.ToString();
     }
 
-    public static void Traverse(this string openApiText, Action<string, object> action)
+    public static void Traverse(this string openApiText, Action<OpenApiDocumentSection, string, object> action)
     {
-        var openApiDocument = ToOpenApiDocument(openApiText, out _);
+        var openApiDocument = openApiText.ToOpenApiDocument(out _);
 
         foreach (var path in openApiDocument.Paths)
         {
             var val = path.Value;
-            action(path.Key, val);
+            action(OpenApiDocumentSection.Path, path.Key, val);
 
             foreach (var ext in val.Extensions)
             {
-                action(ext.Key, ext.Value);
+                action(OpenApiDocumentSection.Extension, ext.Key, ext.Value);
             }
 
             foreach (var parameter in val.Parameters)
             {
                 if (parameter != null)
                 {
-                    action(parameter.Name, parameter);
+                    action(OpenApiDocumentSection.PathParameter, parameter.Name, parameter);
                 }
             }
 
             foreach (var operation in val.Operations)
             {
-                action(operation.Key.ToString(), operation.Value);
+                action(OpenApiDocumentSection.Operation, operation.Key.ToString(), operation.Value);
+
+                foreach (var sec in operation.Value.Security)
+                {
+                    action(OpenApiDocumentSection.Security, $"{path.Key}/{operation.Key.ToString().ToUpper()}", sec);
+                }
+
+                foreach (var p in operation.Value.Parameters)
+                {
+                    action(OpenApiDocumentSection.OperationParameter, p.Name, p);
+                }
+
+                action(OpenApiDocumentSection.RequestBody, $"{path.Key}/{operation.Key.ToString().ToUpper()}", operation.Value.RequestBody);
+
+                foreach (var res in operation.Value.Responses)
+                {
+                    action(OpenApiDocumentSection.Response, $"{path.Key}/{operation.Key.ToString().ToUpper()}", res);
+                }
             }
 
             foreach (var server in val.Servers)
             {
-                action(server.Url, server);
+                action(OpenApiDocumentSection.Server, server.Url, server);
             }
 
-            action(val.Reference.Id, val.Reference);
+            if (val.Reference != null)
+                action(OpenApiDocumentSection.Reference, val.Reference.Id, val.Reference);
         }
     }
 }

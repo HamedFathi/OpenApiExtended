@@ -4,7 +4,7 @@
 		<Authors>Hamed Fathi</Authors>
 		<Company />
 		<PublishRepositoryUrl>true</PublishRepositoryUrl>
-		<Version>0.1.11</Version>
+		<Version>0.1.12</Version>
 		<Nullable>enable</Nullable>
 		<LangVersion>latest</LangVersion>
 		<PackageProjectUrl>https://github.com/HamedFathi/OpenApiExtended</PackageProjectUrl>
