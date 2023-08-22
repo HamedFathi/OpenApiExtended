@@ -14,6 +14,18 @@ namespace OpenApiExtended;
 
 public static partial class OpenApiExtensions
 {
+    public static bool IsJsonString(this string jsonValue, out string value, bool trim = false)
+    {
+        var val = trim ? jsonValue.Trim() : jsonValue;
+        if (val.StartsWith("\"") && val.EndsWith("\""))
+        {
+            value = val.Trim('"');
+            return true;
+        }
+        value = val;
+        return false;
+    }
+
     public static string ReplaceEmptyObject(this string jsonText, Func<string, string> replacer)
     {
         var lines = jsonText.Split(new[] { Environment.NewLine }, StringSplitOptions.None);

@@ -1,7 +1,9 @@
 ﻿// ReSharper disable UnusedMember.Global
 // ReSharper disable IdentifierTypo
+// ReSharper disable StringLiteralTypo
 
 using Humanizer;
+using Microsoft.OpenApi.Any;
 using Microsoft.OpenApi.Models;
 using OpenApiExtended.Enums;
 using OpenApiExtended.Helpers;
@@ -307,9 +309,9 @@ public static partial class OpenApiExtensions
                 return;
             }
 
-            if (s.Default != null)
+            if (s.Default is not null)
             {
-                writer.WriteStringValue(s.Default.ToString());
+                WriteOpenApiValue(writer, s.Default);
                 return;
             }
 
@@ -472,6 +474,65 @@ public static partial class OpenApiExtensions
                     }
                     writer.WriteEndObject();
                     break;
+            }
+        }
+
+        void WriteOpenApiValue(Utf8JsonWriter writer, IOpenApiAny openApiAnyValue)
+        {
+            switch (openApiAnyValue)
+            {
+                case OpenApiString strVal:
+                    writer.WriteStringValue(strVal.Value);
+                    break;
+                case OpenApiInteger intVal:
+                    writer.WriteNumberValue(intVal.Value);
+                    break;
+                case OpenApiLong longVal:
+                    writer.WriteNumberValue(longVal.Value);
+                    break;
+                case OpenApiFloat floatVal:
+                    writer.WriteNumberValue(floatVal.Value);
+                    break;
+                case OpenApiDouble doubleVal:
+                    writer.WriteNumberValue(doubleVal.Value);
+                    break;
+                case OpenApiByte byteVal:
+                    writer.WriteStringValue(byteVal.Value);  // usually base64 encoded
+                    break;
+                case OpenApiBoolean boolVal:
+                    writer.WriteBooleanValue(boolVal.Value);
+                    break;
+                case OpenApiDateTime dateTimeVal:
+                    writer.WriteStringValue(dateTimeVal.Value.ToString("o"));  // ISO 8601 format
+                    break;
+                case OpenApiDate dateVal:
+                    writer.WriteStringValue(dateVal.Value.ToString("yyyy-MM-dd"));  // ISO 8601 date format
+                    break;
+                case OpenApiPassword passwordVal:
+                    writer.WriteStringValue(passwordVal.Value);  // this might be a security concern depending on context
+                    break;
+                case OpenApiBinary binaryVal:
+                    writer.WriteStringValue(Encoding.UTF8.GetString(binaryVal.Value));  // assuming it's UTF8 encoded
+                    break;
+                case OpenApiArray arrayVal:
+                    writer.WriteStartArray();
+                    foreach (var item in arrayVal)
+                    {
+                        WriteOpenApiValue(writer, item); // Recursive call
+                    }
+                    writer.WriteEndArray();
+                    break;
+                case OpenApiObject objVal:
+                    writer.WriteStartObject();
+                    foreach (var item in objVal)
+                    {
+                        writer.WritePropertyName(item.Key);
+                        WriteOpenApiValue(writer, item.Value); // Recursive call
+                    }
+                    writer.WriteEndObject();
+                    break;
+                default:
+                    throw new InvalidOperationException($"Unhandled IOpenApiAny type: {openApiAnyValue.GetType()}");
             }
         }
     }
