@@ -9,7 +9,9 @@ using OpenApiExtended.Models;
 using OpenApiExtended.Settings;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
+using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
@@ -243,14 +245,14 @@ public static partial class OpenApiExtensions
         };
     }
 
-    public static IEnumerable<OpenApiSchemaIR> ToIntermediateRepresentation(this OpenApiSchema openApiSchema, Func<OpenApiSchemaInfo?, object>? valueProvider = null, string separator = ".", string prefix = "")
+    public static IEnumerable<OpenApiSchemaIR> ToIntermediateRepresentation(this OpenApiSchema openApiSchema, Func<string, string, object>? defaultValueProvider = null, string separator = ".", string prefix = "")
     {
         if (openApiSchema == null)
         {
             throw new ArgumentNullException(nameof(openApiSchema));
         }
         var schema = new List<OpenApiSchemaIR>();
-        var flatJson = openApiSchema.ToJsonElement(valueProvider)?.Flatten(separator, prefix);
+        var flatJson = openApiSchema.ToJsonElement(defaultValueProvider)?.Flatten(separator, prefix);
         if (flatJson == null) return schema;
 
         foreach (var item in flatJson)
@@ -269,124 +271,217 @@ public static partial class OpenApiExtensions
         return schema;
     }
 
-    public static JsonElement? ToJsonElement(this OpenApiSchema openApiSchema, Func<OpenApiSchemaInfo?, object>? valueProvider = null)
+    public static JsonElement? ToJsonElement(this OpenApiSchema openApiSchema, Func<string, string, object>? defaultValueProvider = null)
     {
         if (openApiSchema == null)
         {
             throw new ArgumentNullException(nameof(openApiSchema));
         }
-        var json = openApiSchema.ToJsonExample(valueProvider);
+        var json = openApiSchema.ToJsonExample(defaultValueProvider);
         if (string.IsNullOrEmpty(json)) return null;
 
         var jsonNode = JsonNode.Parse(json);
         return jsonNode.Deserialize<JsonElement>();
     }
 
-    public static string ToJsonExample(this OpenApiSchema openApiSchema, Func<OpenApiSchemaInfo?, object>? valueProvider = null)
+    public static string ToJsonExample(this OpenApiSchema schema, Func<string, string, object>? defaultValueProvider = null)
     {
-        if (openApiSchema == null)
-        {
-            throw new ArgumentNullException(nameof(openApiSchema));
-        }
-        var result = string.Empty;
-        var items = openApiSchema.Flatten().ToList();
-
-        if (items.Count == 0)
-        {
-            if (!openApiSchema.IsPrimitive()) return string.Empty;
-            var value = valueProvider?.Invoke(null).ToString() ?? openApiSchema.GetOpenApiSchemaDefaultValue()?.ToString() ?? string.Empty;
-            return value;
-        }
-
-        Regex pattern = new("_____.+?_____", RegexOptions.Compiled);
-        var index = 0;
-        var groupedItems = items.GroupBy(x => x?.ParentKey).ToList();
-
-        foreach (var item in items)
-        {
-            if (item != null && item.IsRoot())
-            {
-                result = item.Type switch
-                {
-                    "object" => $"{{ {GetAlternativeKey(items.GetRoot() ?? "$")} }}",
-                    "array" => $"[ {GetAlternativeKey(items.GetRoot() ?? "$")} ]",
-                    _ => string.Empty
-                };
-            }
-            else
-            {
-                switch (item?.Type)
-                {
-                    case "array":
-                        {
-                            var replace = $"\"{item.Name}\": [ {GetAlternativeKey(item.Key)} ], {GetAlternativeKey(item.ParentKey)}";
-                            result = result.ReplaceFirst(GetAlternativeKey(item.ParentKey), replace);
-                            break;
-                        }
-                    case "object":
-                        {
-                            var prevItemWithSameKeyButArray = items[index - 1]?.Key == item.Key && items[index - 1]?.Type == "array";
-                            if (prevItemWithSameKeyButArray)
-                            {
-                                result = result.ReplaceFirst(GetAlternativeKey(item.Key), $"{{ {GetAlternativeKey(item.Key)} }}");
-                            }
-                            else
-                            {
-                                var refValue = item.Schema.IsEmptyObject() ? "" : GetAlternativeKey(item.Key);
-                                var replace = $"\"{item.Name}\": {{ {refValue} }}, {GetAlternativeKey(item.ParentKey)}";
-                                result = result.ReplaceFirst(GetAlternativeKey(item.ParentKey), replace);
-                            }
-
-                            break;
-                        }
-                }
-
-                if (item?.Type != "array" && item?.Type != "object")
-                {
-                    var value = valueProvider?.Invoke(item).ToString() ?? item?.Schema.GetOpenApiSchemaDefaultValue()?.ToString();
-                    if (item?.GetParentType(items) == "array" && item.IsArrayItem(items) && value != null)
-                    {
-                        result = result.ReplaceFirst(GetAlternativeKey(item.ParentKey), value);
-                    }
-
-                    if (item?.GetParentType(items) == "array" && !item.IsArrayItem(items) && value != null)
-                    {
-                        var parentGroup = groupedItems.First(x => x.Key == item.ParentKey);
-                        var parentGroupData = parentGroup.Select(x => x?.Key).ToList();
-                        var parentGroupCount = parentGroupData.Count;
-                        var isLastItem = parentGroupData.FindIndex(x => x == item.Key) == parentGroupCount - 1;
-                        var reqKey = isLastItem ? "" : GetAlternativeKey(item.ParentKey);
-
-                        var replace = $"\"{item.Name}\": {value}, {reqKey}";
-                        result = result.ReplaceFirst(GetAlternativeKey(item.ParentKey), replace);
-                    }
-                    if (item?.GetParentType(items) == "object" && value != null)
-                    {
-                        var replace = $"\"{item.Name}\": {value}, {GetAlternativeKey(item.ParentKey)}";
-                        result = result.ReplaceFirst(GetAlternativeKey(item.ParentKey), replace);
-                    }
-                }
-            }
-            index++;
-        }
-        result = pattern.Replace(result, string.Empty);
-
-        if (string.IsNullOrEmpty(result))
-        {
-            return string.Empty;
-        }
-
-        result = result.ToFormattedJson();
-        return result;
+        return GenerateJsonExample(schema, new Dictionary<string, OpenApiSchema>(), defaultValueProvider).ToFormattedJson();
     }
 
-    public static JsonNode? ToJsonNode(this OpenApiSchema openApiSchema, Func<OpenApiSchemaInfo?, object>? valueProvider = null)
+    private static string GenerateJsonExample(this OpenApiSchema schema, IReadOnlyDictionary<string, OpenApiSchema> knownSchemas, Func<string, string, object>? defaultValueProvider = null)
+    {
+        using var stream = new MemoryStream();
+        using var utfWriter = new Utf8JsonWriter(stream);
+
+        WriteJsonExample(utfWriter, schema);
+        utfWriter.Flush();
+
+        return Encoding.UTF8.GetString(stream.ToArray());
+
+        void WriteJsonExample(Utf8JsonWriter writer, OpenApiSchema s)
+        {
+            if (s.Reference != null && knownSchemas.ContainsKey(s.Reference.Id))
+            {
+                WriteJsonExample(writer, knownSchemas[s.Reference.Id]);
+                return;
+            }
+
+            if (s.Default != null)
+            {
+                writer.WriteStringValue(s.Default.ToString());
+                return;
+            }
+
+            if (defaultValueProvider != null)
+            {
+                var replacementDefault = defaultValueProvider(s.Type, s.Format);
+                if (replacementDefault is string strVal)
+                {
+                    writer.WriteStringValue(strVal);
+                    return;
+                }
+                if (replacementDefault is bool boolVal)
+                {
+                    writer.WriteBooleanValue(boolVal);
+                    return;
+                }
+                writer.WriteNumberValue(Convert.ToDecimal(replacementDefault));
+                return;
+            }
+
+            switch (s.Type)
+            {
+                case "string":
+                    string exampleString = "example_string";
+                    switch (s.Format)
+                    {
+                        case "date":
+                            exampleString = DateTime.Now.ToString("yyyy-MM-dd");
+                            break;
+                        case "date-time":
+                            exampleString = DateTime.Now.ToString("o");
+                            break;
+                        case "password":
+                            exampleString = "password123!";
+                            break;
+                        case "byte":
+                            exampleString = Convert.ToBase64String(new byte[] { 1, 2, 3 });
+                            break;
+                        case "binary":
+                            exampleString = Encoding.ASCII.GetString(new byte[] { 1, 2, 3 });
+                            break;
+                        case "uuid":
+                        case "guid":
+                            exampleString = Guid.NewGuid().ToString();
+                            break;
+                        case "email":
+                            exampleString = "example@example.com";
+                            break;
+                        case "hostname":
+                            exampleString = "example.com";
+                            break;
+                        case "ipv4":
+                            exampleString = "192.168.1.1";
+                            break;
+                        case "ipv6":
+                            exampleString = "2001:0db8:85a3:0000:0000:8a2e:0370:7334";
+                            break;
+                        case "uri":
+                            exampleString = "https://www.example.com/path?query=value";
+                            break;
+                        case "phone":
+                            exampleString = "+1-123-456-7890";
+                            break;
+                        case "hexcolor":
+                            exampleString = "#FF5733";
+                            break;
+                    }
+                    if (s.MinLength.HasValue)
+                    {
+                        exampleString = exampleString.PadRight(s.MinLength.Value, 'x');
+                    }
+                    if (s.MaxLength.HasValue && exampleString.Length > s.MaxLength.Value)
+                    {
+                        exampleString = exampleString.Substring(0, s.MaxLength.Value);
+                    }
+                    writer.WriteStringValue(exampleString);
+                    break;
+
+                case "number":
+                    var exampleNumber = 123.45678M;
+                    switch (s.Format)
+                    {
+                        case "float":
+                            exampleNumber = 123.45M;
+                            break;
+                        case "double":
+                            exampleNumber = 123.4567890123456789M;
+                            break;
+                        case "currency":
+                            writer.WritePropertyName("amount");
+                            writer.WriteNumberValue(123.45M);
+                            writer.WritePropertyName("code");
+                            writer.WriteStringValue("USD");
+                            break;
+                    }
+                    if (s.Minimum.HasValue)
+                    {
+                        exampleNumber = Math.Max(exampleNumber, s.Minimum.Value);
+                    }
+                    if (s.Maximum.HasValue)
+                    {
+                        exampleNumber = Math.Min(exampleNumber, s.Maximum.Value);
+                    }
+                    writer.WriteNumberValue(exampleNumber);
+                    break;
+
+                case "integer":
+                    long exampleInt = 123;
+                    switch (s.Format)
+                    {
+                        case "int32":
+                            exampleInt = 123;
+                            break;
+                        case "int64":
+                            exampleInt = 1234567890123456789L;
+                            break;
+                        case "timestamp":
+                            exampleInt = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+                            break;
+                    }
+                    if (s.Minimum.HasValue)
+                    {
+                        exampleInt = Math.Max(exampleInt, (long)s.Minimum.Value);
+                    }
+                    if (s.Maximum.HasValue)
+                    {
+                        exampleInt = Math.Min(exampleInt, (long)s.Maximum.Value);
+                    }
+                    writer.WriteNumberValue(exampleInt);
+                    break;
+
+                case "boolean":
+                    writer.WriteBooleanValue(true);
+                    break;
+
+                case "array":
+                    writer.WriteStartArray();
+                    WriteJsonExample(writer, s.Items);
+                    writer.WriteEndArray();
+                    break;
+
+                case "object":
+                    writer.WriteStartObject();
+                    switch (s.Format)
+                    {
+                        case "geo-coordinate":
+                            writer.WritePropertyName("lat");
+                            writer.WriteNumberValue(40.7128M);
+                            writer.WritePropertyName("long");
+                            writer.WriteNumberValue(-74.0060M);
+                            break;
+                        default:
+                            var propertiesToGenerate = s.Required?.Count > 0 ? s.Properties.Where(p => s.Required.Contains(p.Key)) : s.Properties;
+                            foreach (var property in propertiesToGenerate)
+                            {
+                                writer.WritePropertyName(property.Key);
+                                WriteJsonExample(writer, property.Value);
+                            }
+                            break;
+                    }
+                    writer.WriteEndObject();
+                    break;
+            }
+        }
+    }
+    public static JsonNode? ToJsonNode(this OpenApiSchema openApiSchema, Func<string, string, object>? defaultValueProvider = null)
     {
         if (openApiSchema == null)
         {
             throw new ArgumentNullException(nameof(openApiSchema));
         }
-        var json = openApiSchema.ToJsonExample(valueProvider);
+        var json = openApiSchema.ToJsonExample(defaultValueProvider);
         return string.IsNullOrEmpty(json) ? null : JsonNode.Parse(json);
     }
 

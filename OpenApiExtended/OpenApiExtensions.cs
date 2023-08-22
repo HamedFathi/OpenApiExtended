@@ -6,12 +6,68 @@ using OpenApiExtended.Helpers;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 
 namespace OpenApiExtended;
 
 public static partial class OpenApiExtensions
 {
+    public static string ReplaceEmptyObject(this string jsonText, Func<string, string> replacer)
+    {
+        var lines = jsonText.Split(new[] { Environment.NewLine }, StringSplitOptions.None);
+        var sb = new StringBuilder();
+        foreach (var line in lines)
+        {
+            if (line.Contains("{}") && line.Contains(":"))
+            {
+                var regex = new Regex(@"\""(.+)\""");
+                var parts = line.Split(':');
+                var match = regex.Match(parts[0]);
+                if (!match.Success)
+                {
+                    throw new Exception($"Json key {parts[0].Trim()} is not detectable.");
+                }
+                var key = regex.Match(parts[0]).Groups[1].Value;
+                var value = replacer(key);
+                var newLine = line.Replace("{}", value);
+                sb.AppendLine(newLine);
+            }
+            else
+            {
+                sb.AppendLine(line);
+            }
+        }
+        return sb.ToString();
+    }
+    public static string ReplaceEmptyArray(this string jsonText, Func<string, string> replacer)
+    {
+        var lines = jsonText.Split(new[] { Environment.NewLine }, StringSplitOptions.None);
+        var sb = new StringBuilder();
+        foreach (var line in lines)
+        {
+            if (line.Contains("[]") && line.Contains(":"))
+            {
+                var regex = new Regex(@"\""(.+)\""");
+                var parts = line.Split(':');
+                var match = regex.Match(parts[0]);
+                if (!match.Success)
+                {
+                    throw new Exception($"Json key {parts[0].Trim()} is not detectable.");
+                }
+                var key = regex.Match(parts[0]).Groups[1].Value;
+                var value = replacer(key);
+                var newLine = line.Replace("[]", value);
+                sb.AppendLine(newLine);
+            }
+            else
+            {
+                sb.AppendLine(line);
+            }
+        }
+        return sb.ToString();
+    }
     public static bool IsOpenApiDocument(this object obj)
     {
         return obj is OpenApiDocument;
