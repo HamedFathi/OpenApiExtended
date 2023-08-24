@@ -14,15 +14,19 @@ namespace OpenApiExtended;
 
 public static partial class OpenApiExtensions
 {
-    public static bool IsJsonString(this string jsonValue, out string value, bool trim = false)
+    public static bool IsEmptyJsonObject(this string jsonText)
+    {
+        return Regex.Replace(jsonText.Trim(), @"\s+", "").Trim() == "{}";
+    }
+    public static bool IsJsonStringValue(this string jsonValue, out string rawValue, bool trim = false)
     {
         var val = trim ? jsonValue.Trim() : jsonValue;
         if (val.StartsWith("\"") && val.EndsWith("\""))
         {
-            value = val.Trim('"');
+            rawValue = val.Trim('"');
             return true;
         }
-        value = val;
+        rawValue = val;
         return false;
     }
 

@@ -1,6 +1,8 @@
-﻿using System;
+﻿
+using System;
 using System.Linq;
 using System.Text;
+using System.Text.Encodings.Web;
 using System.Text.Json;
 
 namespace OpenApiExtended.Helpers;
@@ -135,7 +137,11 @@ internal static class SourceCodeFormatter
         }
         jsonText = jsonText.Trim().Trim(',').Trim();
         var parsedJson = JsonDocument.Parse(jsonText, new JsonDocumentOptions { AllowTrailingCommas = true });
-        var result = JsonSerializer.Serialize(parsedJson, new JsonSerializerOptions { WriteIndented = true });
+        var result = JsonSerializer.Serialize(parsedJson, new JsonSerializerOptions
+        {
+            WriteIndented = true,
+            Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
+        }); 
         return result;
     }
 
